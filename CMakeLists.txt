@@ -176,6 +176,19 @@ opm_add_test(flow_blackoil_fast
 )
 target_link_libraries(flow_blackoil_fast TracyClient)
 
+
+opm_add_test(flow_blackoil_drygas
+  ONLY_COMPILE
+  ALWAYS_ENABLE
+  DEPENDS opmsimulators
+  LIBRARIES opmsimulators
+  SOURCES
+  examples/flow_blackoil_drygas.cpp
+  $<TARGET_OBJECTS:moduleVersion>
+)
+target_link_libraries(flow_blackoil_drygas TracyClient)
+
+
 opm_add_test(ebos
   ONLY_COMPILE
   ALWAYS_ENABLE
