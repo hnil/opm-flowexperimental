@@ -25,10 +25,7 @@
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 #include <opm/models/blackoil/blackoilintensivequantitiessimple.hh> 
-#include <opm/materials/common/Means.hpp>
-namespace Opm{
-   
-
+  
 // the current code use eclnewtonmethod adding other conditions to proceed_ should do the trick for KA
 // adding linearshe sould be chaning the update_ function in the same class with condition that the error is reduced.
 // the trick is to be able to recalculate the residual from here.
@@ -42,10 +39,12 @@ struct EclFlowProblemEbos {
 };
 }
 
+
+
 // Set the problem class
 template<class TypeTag>
 struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
-    using type = EbosProblemFlow<TypeTag>;
+    using type = EbosProblem<TypeTag>;
 };
 
     

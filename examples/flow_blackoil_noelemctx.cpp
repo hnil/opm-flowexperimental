@@ -24,6 +24,8 @@
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
+
 namespace Opm{
     template<typename TypeTag>
     class BlackOilModelFv: public BlackOilModel<TypeTag>{
@@ -71,22 +73,23 @@ namespace TTag {
     
     template<class TypeTag>
     struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
-
+    
     template<class TypeTag>
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
     template<class TypeTag>
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
         using type = BlackOilModelFv<TypeTag>;
-    }
+    };
 
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
     using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
-};   
+    };
+    
 };    
    
 }
-}
+
 int main(int argc, char** argv)
 {
     OPM_TIMEBLOCK(fullSimulation);

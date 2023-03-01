@@ -27,22 +27,21 @@
  */
 #ifndef EWOMS_BLACK_OIL_INTENSIVE_QUANTITIES_ECL_HH
 #define EWOMS_BLACK_OIL_INTENSIVE_QUANTITIES_ECL_HH
-
-#include "blackoilproperties.hh"
-#include "blackoilsolventmodules.hh"
-#include "blackoilextbomodules.hh"
-#include "blackoilpolymermodules.hh"
-#include "blackoilfoammodules.hh"
-#include "blackoilbrinemodules.hh"
-#include "blackoilenergymodules.hh"
-#include "blackoildiffusionmodule.hh"
-#include "blackoilmicpmodules.hh"
+#include <opm/models/blackoil/blackoilproperties.hh>
+#include <opm/models/blackoil/blackoilsolventmodules.hh>
+#include <opm/models/blackoil/blackoilextbomodules.hh>
+#include <opm/models/blackoil/blackoilpolymermodules.hh>
+#include <opm/models/blackoil/blackoilfoammodules.hh>
+#include <opm/models/blackoil/blackoilbrinemodules.hh>
+#include <opm/models/blackoil/blackoilenergymodules.hh>
+#include <opm/models/blackoil/blackoildiffusionmodule.hh>
+#include <opm/models/blackoil/blackoilmicpmodules.hh>
 #include <opm/material/fluidstates/BlackOilFluidState.hpp>
 #include <opm/material/common/Valgrind.hpp>
 #include <opm/input/eclipse/EclipseState/Grid/FaceDir.hpp>
 #include <opm/common/OpmLog/OpmLog.hpp>
 #include <opm/utility/CopyablePtr.hpp>
-
+#include <opm/common/ErrorMacros.hpp>
 #include <dune/common/fmatrix.hh>
 
 #include <cstring>
@@ -129,6 +128,7 @@ public:
                                           enableEvaporation,
                                           enableBrine,
                                           enableSaltPrecipitation,
+                                          false,
                                           Indices::numPhases>;
     using ScalarFluidState = BlackOilFluidState<Scalar,
                                                 FluidSystem,
@@ -138,6 +138,7 @@ public:
                                                 enableEvaporation,
                                                 enableBrine,
                                                 enableSaltPrecipitation,
+                                                false,
                                                 Indices::numPhases>;
     using Problem = GetPropType<TypeTag, Properties::Problem>;
 
@@ -164,7 +165,6 @@ public:
 
         const auto& problem = elemCtx.problem();
         const auto& priVars = elemCtx.primaryVars(dofIdx, timeIdx);
-        const auto& linearizationType = problem.model().linearizer().getLinearizationType();
         unsigned globalSpaceIdx = elemCtx.globalSpaceIndex(dofIdx, timeIdx);
         this->update(problem,priVars,globalSpaceIdx,timeIdx);
     }
@@ -173,7 +173,7 @@ public:
                 unsigned globalSpaceIdx,
                 unsigned timeIdx)
     {
-        OPM_TIME_BLOCK(UpdateIntensiveQuantitiesGenneral);
+        OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantitiesGenneral);
         const auto& waterpvt = FluidSystem::waterPvt().template getRealPvt<Opm::WaterPvtApproach::ConstantCompressibilityWater>();
         const auto& gaspvt = FluidSystem::gasPvt().template getRealPvt<Opm::GasPvtApproach::WetGas>();
         const auto& oilpvt = FluidSystem::oilPvt().template getRealPvt<Opm::OilPvtApproach::LiveOil>();;
@@ -190,7 +190,7 @@ public:
                 const OilPvtT& oilpvt)
     {
         
-        OPM_TIME_BLOCK(UpdateIntensiveQuantities);
+        OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantities);
         Evaluation T=298.0;
         std::array<bool, numPhases> saturated;
         for(int i=0; i< numPhases; ++i){
@@ -264,7 +264,7 @@ public:
         
         std::array<Evaluation, numPhases> pC = {0, 0, 0};
         {
-            OPM_TIME_BLOCK(RelpermEvaluation);
+            OPM_TIMEBLOCK_LOCAL(RelpermEvaluation);
             // //const auto& materialParams = problem.materialLawParams(0)
             //const auto& materialParams = problem.materialLawParams(globalSpaceIdx).template getRealParams<Opm::EclMultiplexerApproach::Default>();    
             // MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState_);
@@ -299,7 +299,7 @@ public:
         //asImp_().zFractionUpdate_(elemCtx, dofIdx, timeIdx);
 
         {
-         OPM_TIME_BLOCK(AllPVTVistosity);   
+         OPM_TIMEBLOCK_LOCAL(AllPVTVistosity);   
         Evaluation SoMax = 0.0;
         if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
             SoMax = max(fluidState_.saturation(oilPhaseIdx),
@@ -315,7 +315,7 @@ public:
             saturated[oilPhaseIdx] = false;
         } else {
             if (FluidSystem::enableDissolvedGas()) { // Add So > 0? i.e. if only water set rs = 0)
-                OPM_TIME_BLOCK(UpdateSaturatedRs);
+                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRs);
                 const Evaluation& p = fluidState_.pressure(oilPhaseIdx);
                 segIdx_so = oilpvt.saturatedGasDissolutionFactorTable()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
                 
@@ -344,7 +344,7 @@ public:
         }
  
         if (saturated[oilPhaseIdx] ){
-            OPM_TIME_BLOCK(OilSaturatedPvt);
+            OPM_TIMEBLOCK_LOCAL(OilSaturatedPvt);
             const Evaluation& p = fluidState_.pressure(oilPhaseIdx);
              //size_t segIdx = oilpvt.inverseSaturatedOilBTable()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
             size_t segIdx = segIdx_so;
@@ -354,7 +354,7 @@ public:
             fluidState_.setInvB(oilPhaseIdx, b);
             viscosity[oilPhaseIdx] =mu;          
         }else{
-            OPM_TIME_BLOCK(OilUnSaturatedPvt);
+            OPM_TIMEBLOCK_LOCAL(OilUnSaturatedPvt);
             const Evaluation& p = fluidState_.pressure(oilPhaseIdx);
             const Evaluation& Rs = fluidState_.Rs();
             //Evaluation b = oilpvt.inverseFormationVolumeFactor(pvtRegionIdx, T, p,Rs);//??
@@ -377,7 +377,7 @@ public:
              saturated[gasPhaseIdx] = false;
         } else {
             if (FluidSystem::enableVaporizedOil() ) { // Add Sg > 0? i.e. if only water set rv = 0)
-                OPM_TIME_BLOCK(UpdateSaturatedRv);
+                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv);
                 //NB! should save the indexing for later evalustion
                 const Evaluation& p = fluidState_.pressure(gasPhaseIdx);
                 segIdx_g = gaspvt.saturatedOilVaporizationFactorTable()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
@@ -407,7 +407,7 @@ public:
         }
         
         if(saturated[gasPhaseIdx]){
-            OPM_TIME_BLOCK(GasSaturatedPvt);
+            OPM_TIMEBLOCK_LOCAL(GasSaturatedPvt);
             const Evaluation& p = fluidState_.pressure(gasPhaseIdx);
             // no oil  gas present  and enableVaporized oil
             size_t segIdx = segIdx_g;//gaspvt.inverseSaturatedGasB()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
@@ -417,7 +417,7 @@ public:
             fluidState_.setInvB(gasPhaseIdx, b);
             viscosity[gasPhaseIdx] = mu;
         }else{
-            OPM_TIME_BLOCK(GasUnSaturatedPvt);
+            OPM_TIMEBLOCK_LOCAL(GasUnSaturatedPvt);
             const Evaluation& p = fluidState_.pressure(gasPhaseIdx);
             const Evaluation& Rv = fluidState_.Rv();
             unsigned ii,j1,j2;
@@ -437,7 +437,7 @@ public:
         } else {
             //NB! should save the indexing for later evaluation
             if (FluidSystem::enableVaporizedWater()) { // Add Sg > 0? i.e. if only water set rv = 0)
-                OPM_TIME_BLOCK(UpdateSaturatedRv);
+                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv);
                 const Evaluation& RvwSat = FluidSystem::saturatedVaporizationFactor(fluidState_,
                                                             gasPhaseIdx,
                                                             pvtRegionIdx);
@@ -448,7 +448,7 @@ public:
         
   
        {
-            OPM_TIME_BLOCK(WaterPvt);
+            OPM_TIMEBLOCK_LOCAL(WaterPvt);
             Evaluation salt= 0.0;
             const Evaluation& p = fluidState_.pressure(waterPhaseIdx);
             Evaluation b;
@@ -473,14 +473,14 @@ public:
         // calculate the phase densities
         Evaluation rho;
         if (FluidSystem::phaseIsActive(waterPhaseIdx)) {
-            OPM_TIME_BLOCK(UpdateWDensity);
+            OPM_TIMEBLOCK_LOCAL(UpdateWDensity);
             rho = fluidState_.invB(waterPhaseIdx);
             rho *= FluidSystem::referenceDensity(waterPhaseIdx, pvtRegionIdx);
             fluidState_.setDensity(waterPhaseIdx, rho);
         }
 
         if (FluidSystem::phaseIsActive(gasPhaseIdx)) {
-            OPM_TIME_BLOCK(UpdateGDensity);
+            OPM_TIMEBLOCK_LOCAL(UpdateGDensity);
             rho = fluidState_.invB(gasPhaseIdx);
             rho *= FluidSystem::referenceDensity(gasPhaseIdx, pvtRegionIdx);
             if (FluidSystem::enableVaporizedOil()) {
@@ -499,7 +499,7 @@ public:
         }
 
         if (FluidSystem::phaseIsActive(oilPhaseIdx)) {
-            OPM_TIME_BLOCK(UpdateODensity);
+            OPM_TIMEBLOCK_LOCAL(UpdateODensity);
             rho = fluidState_.invB(oilPhaseIdx);
             rho *= FluidSystem::referenceDensity(oilPhaseIdx, pvtRegionIdx);
             if (FluidSystem::enableDissolvedGas()) {
@@ -519,7 +519,7 @@ public:
         
         Scalar rockCompressibility = problem.rockCompressibility(globalSpaceIdx);
         if (rockCompressibility > 0.0) {
-            OPM_TIME_BLOCK(UpdateRockCompressibility);
+            OPM_TIMEBLOCK_LOCAL(UpdateRockCompressibility);
             Scalar rockRefPressure = problem.rockReferencePressure(globalSpaceIdx);
             Evaluation x;
             if (FluidSystem::phaseIsActive(oilPhaseIdx)) {
@@ -620,14 +620,14 @@ public:
                                                          unsigned phaseIdx,
                                                          unsigned pvtRegionIdx,
                                                          const Evaluation& SoMax){
-        OPM_TIME_BLOCK(UpdateInverseFormationFactorAndViscosity);
+        OPM_TIMEBLOCK_LOCAL(UpdateInverseFormationFactorAndViscosity);
         {
-        OPM_TIME_BLOCK(UpdateFormationFactor);
+        OPM_TIMEBLOCK_LOCAL(UpdateFormationFactor);
         const auto& b = FluidSystem::inverseFormationVolumeFactor(fluidState, phaseIdx, pvtRegionIdx);
         fluidState_.setInvB(phaseIdx, b);
         }
         {
-            OPM_TIME_BLOCK(UpdateViscosity);
+            OPM_TIMEBLOCK_LOCAL(UpdateViscosity);
             typename FluidSystem::template ParameterCache<Evaluation> paramCache;
             paramCache.setRegionIndex(pvtRegionIdx);
             if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {

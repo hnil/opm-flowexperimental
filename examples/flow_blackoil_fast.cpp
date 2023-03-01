@@ -78,16 +78,16 @@ namespace TTag {
     template<class TypeTag>
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
         using type = BlackOilModelFv<TypeTag>;
-    }
+    };
 
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
     using type = EclBlackOilIntensiveQuantities<TypeTag>;
-};   
+    };   
 };    
    
 }
-}
+
 int main(int argc, char** argv)
 {
     OPM_TIMEBLOCK(fullSimulation);

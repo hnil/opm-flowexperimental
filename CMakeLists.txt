@@ -50,6 +50,10 @@ if(opm-common_DIR AND NOT IS_DIRECTORY ${opm-common_DIR})
 endif()
 
 find_package(opm-common REQUIRED)
+if(USE_MPI)
+  set(HDF5_PREFER_PARALLEL TRUE)
+endif()
+
 find_package(opm-simulators REQUIRED)
 
 include(OpmInit)
@@ -106,6 +110,17 @@ macro (fortran_hook)
 endmacro (fortran_hook)
 
 macro (files_hook)
+	if(MPI_FOUND AND HDF5_FOUND AND NOT HDF5_IS_PARALLEL)
+    message(WARNING "When building parallel OPM flow we need a "
+      "parallel version of hdf5, but found only a serial one. "
+      "Please install a parallel hdf5 library for MPI "
+      "(e.g with apt-get install libhdf5-mpi-dev) and do a clean "
+      "rebuild (build after \"make clean\"). Continuing with "
+      "only normal restart without hdf5 file support.")
+    set(HDF5_FOUND OFF)
+    unset(HAVE_HDF5)
+  endif()
+	include (CMakeLists_files.cmake)
 endmacro (files_hook)
 
 macro (tests_hook)
@@ -139,27 +154,27 @@ opm_add_test(flow_blackoil_tracy
   examples/flow_blackoil_tracy.cpp
   $<TARGET_OBJECTS:moduleVersion>
 )
-
+target_link_libraries(flow_blackoil_tracy TracyClient)
 opm_add_test(flow_blackoil_noelemctx
   ONLY_COMPILE
   ALWAYS_ENABLE
   DEPENDS opmsimulators
   LIBRARIES opmsimulators
   SOURCES
-  examples/flow_blackoil_tracy.cpp
+  examples/flow_blackoil_noelemctx.cpp
   $<TARGET_OBJECTS:moduleVersion>
 )
-
+target_link_libraries(flow_blackoil_noelemctx TracyClient)
 opm_add_test(flow_blackoil_fast
   ONLY_COMPILE
   ALWAYS_ENABLE
   DEPENDS opmsimulators
   LIBRARIES opmsimulators
   SOURCES
-  examples/flow_blackoil_tracy.cpp
+  examples/flow_blackoil_fast.cpp
   $<TARGET_OBJECTS:moduleVersion>
 )
-
+target_link_libraries(flow_blackoil_fast TracyClient)
 
 opm_add_test(ebos
   ONLY_COMPILE
