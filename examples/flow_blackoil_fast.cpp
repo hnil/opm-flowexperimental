@@ -26,12 +26,19 @@
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 #include <opm/flowexperimental/eclblackoilintensivequantities.hh>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+
+// initialization modifications to be able to inititialize with new material manager
+#include <ebos/equil/equilibrationhelpers.hh>
+#include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
+#include <ebos/equil/initstateequil.hh>
+#include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
+
 namespace Opm{
     template<typename TypeTag>
     class EclProblemNew: public EclProblem<TypeTag>{
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
-        using DirectionalMobilityPtr = Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
+        using DirectionalMobilityPtr = ::Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
         using MaterialLaw = GetPropType<TypeTag, Properties::MaterialLaw>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
         enum { numPhases = FluidSystem::numPhases };
