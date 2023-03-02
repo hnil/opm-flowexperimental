@@ -163,7 +163,8 @@ opm_add_test(flow_blackoil_noelemctx
   SOURCES
   examples/flow_blackoil_noelemctx.cpp
   $<TARGET_OBJECTS:moduleVersion>
-)
+	)
+target_sources(flow_blackoil_noelemctx PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
 target_link_libraries(flow_blackoil_noelemctx TracyClient)
 opm_add_test(flow_blackoil_fast
   ONLY_COMPILE
@@ -171,9 +172,10 @@ opm_add_test(flow_blackoil_fast
   DEPENDS opmsimulators
   LIBRARIES opmsimulators
   SOURCES
-  examples/flow_blackoil_fast.cpp
+  examples/flow_blackoil_fast.cpp 
   $<TARGET_OBJECTS:moduleVersion>
-)
+	)
+target_sources(flow_blackoil_fast PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
 target_link_libraries(flow_blackoil_fast TracyClient)
 
 
