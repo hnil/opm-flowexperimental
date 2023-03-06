@@ -166,7 +166,7 @@ public:
 
         const auto& problem = elemCtx.problem();
         const auto& priVars = elemCtx.primaryVars(dofIdx, timeIdx);
-        const auto& linearizationType = problem.model().linearizer().getLinearizationType();
+        //const auto& linearizationType = problem.model().linearizer().getLinearizationType();
         unsigned globalSpaceIdx = elemCtx.globalSpaceIndex(dofIdx, timeIdx);
         this->update(problem,priVars,globalSpaceIdx,timeIdx);
     }
@@ -180,7 +180,7 @@ public:
         this->extrusionFactor_ = 1.0;// to avoid fixing parent update
         OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantities);
         //const auto& priVars = elemCtx.primaryVars(dofIdx, timeIdx);
-        const auto& linearizationType = problem.model().linearizer().getLinearizationType();
+        //const auto& linearizationType = problem.model().linearizer().getLinearizationType();
         Scalar RvMax = FluidSystem::enableVaporizedOil()
             ? problem.maxOilVaporizationFactor(timeIdx, globalSpaceIdx)
             : 0.0;
@@ -534,12 +534,12 @@ public:
     void computeRelpermAndPC(std::array<Evaluation,numPhases>& mobility,
                              std::array<Evaluation, numPhases>& pC,
                              const Problem& problem,
-                             const FluidState& fluidState_,
+                             const FluidState& fluidState,
                              unsigned globalSpaceIdx){
         OPM_TIMEBLOCK_LOCAL(UpdateRelperm);
         const auto& materialParams = problem.materialLawParams(globalSpaceIdx);                        
         MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);        
-        problem.updateRelperms(mobility_, dirMob_, fluidState_, globalSpaceIdx);
+        problem.updateRelperms(mobility, dirMob_, fluidState, globalSpaceIdx);
     
         //mobility_[waterPhaseIdx] = Sw;
         //mobility_[oilPhaseIdx] = So;

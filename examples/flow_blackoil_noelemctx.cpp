@@ -25,8 +25,44 @@
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 #include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
+#include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+
+// initialization modifications to be able to inititialize with new material manager
+#include <ebos/equil/equilibrationhelpers.hh>
+#include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
+#include <ebos/equil/initstateequil.hh>
+#include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
 
 namespace Opm{
+    template<typename TypeTag>
+    class EclProblemNew: public EclProblem<TypeTag>{
+        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
+        using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
+        using DirectionalMobilityPtr = ::Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
+        using MaterialLaw = GetPropType<TypeTag, Properties::MaterialLaw>;
+        using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
+        enum { numPhases = FluidSystem::numPhases };
+    public:
+        EclProblemNew(Simulator& simulator): EclProblem<TypeTag>(simulator){
+        }
+        template <class FluidState>
+        void updateRelperms(
+            std::array<Evaluation,numPhases> &mobility,
+            DirectionalMobilityPtr &/*dirMob*/,
+            FluidState &fluidState,
+            unsigned globalSpaceIdx) const
+        {
+            OPM_TIMEBLOCK_LOCAL(updateRelperms);
+            {
+                // calculate relative permeabilities. note that we store the result into the
+                // mobility_ class attribute. the division by the phase viscosity happens later.
+                const auto& materialParams = this->materialLawParams(globalSpaceIdx);
+                MaterialLaw::relativePermeabilities(mobility, materialParams, fluidState);
+                Valgrind::CheckDefined(mobility);
+            }
+        };
+    };
+
     template<typename TypeTag>
     class BlackOilModelFv: public BlackOilModel<TypeTag>{
         using Parent = BlackOilModel<TypeTag>;
@@ -84,6 +120,28 @@ namespace TTag {
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
     using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
+    };
+    template<class TypeTag>
+    struct Problem<TypeTag, TTag::EclFlowProblemTest> {
+        using type = EclProblemNew<TypeTag>;
+    };
+    template<class TypeTag>
+    struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
+    {
+    private:
+        using Scalar = GetPropType<TypeTag, Properties::Scalar>;
+        using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
+        
+        using Traits = ThreePhaseMaterialTraits<Scalar,
+                                                /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
+                                                /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
+                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
+        
+    public:
+        using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;
+        //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
+        
+        using type = typename EclMaterialLawManager::MaterialLaw;
     };
     
 };    

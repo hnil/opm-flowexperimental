@@ -308,7 +308,7 @@ public:
 
         // take the meaning of the switching primary variable into account for the gas
         // and oil phase compositions
-        size_t segIdx_so;
+        SegmentIndex segIdx_so;
         if (priVars.primaryVarsMeaningGas() == PrimaryVariables::GasMeaning::Rs) {
             const auto& Rs = priVars.makeEvaluation(Indices::compositionSwitchIdx, timeIdx);
             fluidState_.setRs(Rs);
@@ -317,7 +317,7 @@ public:
             if (FluidSystem::enableDissolvedGas()) { // Add So > 0? i.e. if only water set rs = 0)
                 OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRs);
                 const Evaluation& p = fluidState_.pressure(oilPhaseIdx);
-                segIdx_so = oilpvt.saturatedGasDissolutionFactorTable()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
+                segIdx_so = oilpvt.saturatedGasDissolutionFactorTable()[pvtRegionIdx].findSegmentIndex(p,/*extrapolate=*/true);
                 
                 Evaluation RsSat_max = oilpvt.saturatedGasDissolutionFactorTable()[pvtRegionIdx].eval(p, segIdx_so);
                 Evaluation RsSat = RsSat_max;
@@ -346,8 +346,8 @@ public:
         if (saturated[oilPhaseIdx] ){
             OPM_TIMEBLOCK_LOCAL(OilSaturatedPvt);
             const Evaluation& p = fluidState_.pressure(oilPhaseIdx);
-             //size_t segIdx = oilpvt.inverseSaturatedOilBTable()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
-            size_t segIdx = segIdx_so;
+             //SegmentIndex segIdx = oilpvt.inverseSaturatedOilBTable()[pvtRegionIdx].findSegmentIndex(p,/*extrapolate=*/true);
+            SegmentIndex segIdx = segIdx_so;
             Evaluation b  =oilpvt.inverseSaturatedOilBTable()[pvtRegionIdx].eval(p, segIdx);
             Evaluation invBMu = oilpvt.inverseSaturatedOilBMuTable()[pvtRegionIdx].eval(p,segIdx);
             Evaluation mu = b/invBMu;
@@ -362,15 +362,15 @@ public:
             Evaluation alpha, beta1, beta2;          
             //Evaluation b = oilpvt.inverseOilBTable()[pvtRegionIdx].eval(Rs,p,/*extrapolate*/true);
             oilpvt.inverseOilBTable()[pvtRegionIdx].findPoints(ii,j1,j2,alpha, beta1,beta2,Rs,p,/*extrapolate*/true);
-            Evaluation b = oilpvt.inverseOilBTable()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2,Rs,p,/*extrapolate*/true);
+            Evaluation b = oilpvt.inverseOilBTable()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2);//,Rs,p,/*extrapolate*/true);
             //Evaluation mu = oilpvt.viscosity(pvtRegionIdx, T, p, Rs);
             //Evaluation invBMu = oilpvt.inverseOilBMuTable()[pvtRegionIdx].eval(Rs, p, /*extrapolate=*/true);
-            Evaluation invBMu = oilpvt.inverseOilBMuTable()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2,Rs,p,/*extrapolate*/true);
+            Evaluation invBMu = oilpvt.inverseOilBMuTable()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2);//,Rs,p,/*extrapolate*/true);
             Evaluation mu = b/invBMu;
             fluidState_.setInvB(oilPhaseIdx, b);
             viscosity[oilPhaseIdx] = mu; 
         }
-        size_t segIdx_g;
+        SegmentIndex segIdx_g;
         if (priVars.primaryVarsMeaningGas() == PrimaryVariables::GasMeaning::Rv) {
              const auto& Rv = priVars.makeEvaluation(Indices::compositionSwitchIdx, timeIdx);
              fluidState_.setRv(Rv);
@@ -380,7 +380,7 @@ public:
                 OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv);
                 //NB! should save the indexing for later evalustion
                 const Evaluation& p = fluidState_.pressure(gasPhaseIdx);
-                segIdx_g = gaspvt.saturatedOilVaporizationFactorTable()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
+                segIdx_g = gaspvt.saturatedOilVaporizationFactorTable()[pvtRegionIdx].findSegmentIndex(p,/*extrapolate=*/true);
                 Evaluation RvSat_max = gaspvt.saturatedOilVaporizationFactorTable()[pvtRegionIdx].eval(p, segIdx_g);
                 Evaluation RvSat = RvSat_max;
                 Evaluation maxOilSaturation = min(SoMax, Scalar(1.0));
@@ -410,7 +410,7 @@ public:
             OPM_TIMEBLOCK_LOCAL(GasSaturatedPvt);
             const Evaluation& p = fluidState_.pressure(gasPhaseIdx);
             // no oil  gas present  and enableVaporized oil
-            size_t segIdx = segIdx_g;//gaspvt.inverseSaturatedGasB()[pvtRegionIdx].findSegmentIndex_(p,/*extrapolate=*/true);
+            SegmentIndex segIdx = segIdx_g;//gaspvt.inverseSaturatedGasB()[pvtRegionIdx].findSegmentIndex(p,/*extrapolate=*/true);
             Evaluation b  =gaspvt.inverseSaturatedGasB()[pvtRegionIdx].eval(p, segIdx);
             const Evaluation& invBMu = gaspvt.inverseSaturatedGasBMu()[pvtRegionIdx].eval(p, segIdx);
             Evaluation mu = b/invBMu;
@@ -423,8 +423,8 @@ public:
             unsigned ii,j1,j2;
             Evaluation alpha, beta1, beta2;          
             gaspvt.inverseGasB()[pvtRegionIdx].findPoints(ii,j1,j2,alpha, beta1,beta2,p,Rv,/*extrapolate*/true);
-            Evaluation b = gaspvt.inverseGasB()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2,p,Rv,/*extrapolate*/true);
-            Evaluation invBMu = gaspvt.inverseGasBMu()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2,p,Rv,/*extrapolate*/true);
+            Evaluation b = gaspvt.inverseGasB()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2);//,p,Rv,/*extrapolate*/true);
+            Evaluation invBMu = gaspvt.inverseGasBMu()[pvtRegionIdx].eval(ii,j1,j2,alpha, beta1,beta2);//,p,Rv,/*extrapolate*/true);
             Evaluation mu = b/invBMu;
             fluidState_.setInvB(gasPhaseIdx, b);
             viscosity[gasPhaseIdx] = mu;

@@ -48,7 +48,7 @@ namespace Opm{
         template <class FluidState>
         void updateRelperms(
             std::array<Evaluation,numPhases> &mobility,
-            DirectionalMobilityPtr &dirMob,
+            DirectionalMobilityPtr &/*dirMob*/,
             FluidState &fluidState,
             unsigned globalSpaceIdx) const
         {
