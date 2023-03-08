@@ -151,7 +151,7 @@ opm_add_test(flow_blackoil_tracy
   examples/flow_blackoil_tracy.cpp
   $<TARGET_OBJECTS:moduleVersionExp>
 )
-target_link_libraries(flow_blackoil_tracy TracyClient)
+target_link_libraries(flow_blackoil_tracy Tracy::TracyClient)
 opm_add_test(flow_blackoil_noelemctx
   ONLY_COMPILE
   ALWAYS_ENABLE
@@ -162,7 +162,7 @@ opm_add_test(flow_blackoil_noelemctx
   $<TARGET_OBJECTS:moduleVersionExp>
 	)
 target_sources(flow_blackoil_noelemctx PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
-target_link_libraries(flow_blackoil_noelemctx TracyClient)
+target_link_libraries(flow_blackoil_noelemctx Tracy::TracyClient)
 opm_add_test(flow_blackoil_fast
   ONLY_COMPILE
   ALWAYS_ENABLE
@@ -173,7 +173,7 @@ opm_add_test(flow_blackoil_fast
   $<TARGET_OBJECTS:moduleVersionExp>
 	)
 target_sources(flow_blackoil_fast PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
-target_link_libraries(flow_blackoil_fast TracyClient)
+target_link_libraries(flow_blackoil_fast Tracy::TracyClient)
 
 
 opm_add_test(flow_blackoil_drygas
@@ -185,7 +185,7 @@ opm_add_test(flow_blackoil_drygas
   examples/flow_blackoil_drygas.cpp
   $<TARGET_OBJECTS:moduleVersionExp>
 )
-target_link_libraries(flow_blackoil_drygas TracyClient)
+target_link_libraries(flow_blackoil_drygas Tracy::TracyClient)
 
 
 opm_add_test(ebos
