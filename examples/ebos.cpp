@@ -24,7 +24,7 @@
 
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/models/blackoil/blackoilintensivequantitiessimple.hh> 
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
   
 // the current code use eclnewtonmethod adding other conditions to proceed_ should do the trick for KA
 // adding linearshe sould be chaning the update_ function in the same class with condition that the error is reduced.
@@ -85,8 +85,8 @@ struct EclNewtonRelaxedTolerance<TypeTag, TTag::EclFlowProblemEbos> {
     static constexpr type value = 10*getPropValue<TypeTag, Properties::NewtonTolerance>();
 };
 
-template<class TypeTag>
-struct Linearizer<TypeTag, TTag::EclFlowProblemEbos> { using type = TpfaLinearizer<TypeTag>; };
+//template<class TypeTag>
+//struct Linearizer<TypeTag, TTag::EclFlowProblemEbos> { using type = TpfaLinearizer<TypeTag>; };
 
 template<class TypeTag>
 struct LocalResidual<TypeTag, TTag::EclFlowProblemEbos> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
