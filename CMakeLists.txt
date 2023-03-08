@@ -52,14 +52,13 @@ if(opm-common_DIR AND NOT IS_DIRECTORY ${opm-common_DIR})
 endif()
 
 find_package(opm-common REQUIRED)
-if(USE_MPI)
-  set(HDF5_PREFER_PARALLEL TRUE)
-endif()
-
-find_package(opm-simulators REQUIRED)
 
 include(OpmInit)
 OpmSetPolicies()
+
+if(USE_MPI)
+  set(HDF5_PREFER_PARALLEL TRUE)
+endif()
 
 # not the same location as most of the other projects? this hook overrides
 macro (dir_hook)
