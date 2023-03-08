@@ -12,6 +12,7 @@ set (opm-testing_CONFIG_VAR
   DUNE_ISTL_VERSION_MINOR
   DUNE_ISTL_VERSION_REVISION
   HAVE_SUITESPARSE_UMFPACK
+  HAVE_HDF5
   )
 
 # dependencies
@@ -42,6 +43,7 @@ set (opm-flowexperimental_DEPS
   "opm-simulators REQUIRED"
   "Damaris 1.7"
   "HDF5"  
+  "Tracy REQUIRED"
   )
 
 find_package_deps(opm-flowexperimental)

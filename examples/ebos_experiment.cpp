@@ -188,7 +188,7 @@ namespace Opm{
                     auto& residual = stdwell->linSys().residual();
                     well_norm = this->norm(residual);
                 }else{
-                    std::runtime_error("not standard wells");
+                    throw std::runtime_error("not standard wells");
                 }                                    
                 sum += well_norm;                        
             }

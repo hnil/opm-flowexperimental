@@ -17,6 +17,8 @@
 # Mandatory call to project
 project(opm-flowexperimental C CXX)
 
+cmake_minimum_required(VERSION 3.15)
+
 option(SIBLING_SEARCH "Search for other modules in sibling directories?" ON)
 set( USE_OPENMP_DEFAULT OFF ) # Use of OpenMP is considered experimental
 
@@ -50,14 +52,13 @@ if(opm-common_DIR AND NOT IS_DIRECTORY ${opm-common_DIR})
 endif()
 
 find_package(opm-common REQUIRED)
-if(USE_MPI)
-  set(HDF5_PREFER_PARALLEL TRUE)
-endif()
-
-find_package(opm-simulators REQUIRED)
 
 include(OpmInit)
 OpmSetPolicies()
+
+if(USE_MPI)
+  set(HDF5_PREFER_PARALLEL TRUE)
+endif()
 
 # not the same location as most of the other projects? this hook overrides
 macro (dir_hook)
@@ -130,14 +131,10 @@ endmacro (tests_hook)
 # all setup common to the OPM library modules is done here
 include (OpmLibMain)
 
-
-
-
 include(OpmBashCompletion)
 
-
-#add_library(moduleVersion OBJECT opm/simulators/utils/moduleVersion.cpp)
-#set_property(TARGET moduleVersion PROPERTY POSITION_INDEPENDENT_CODE ON)
+add_library(moduleVersionExp OBJECT opm/simulators/utils/moduleVersion.cpp)
+set_property(TARGET moduleVersionExp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Strictly we only depend on the update-version target,
 # but this is not exposed in a super-build.
@@ -152,9 +149,9 @@ opm_add_test(flow_blackoil_tracy
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_tracy.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 )
-target_link_libraries(flow_blackoil_tracy TracyClient)
+target_link_libraries(flow_blackoil_tracy Tracy::TracyClient)
 opm_add_test(flow_blackoil_noelemctx
   ONLY_COMPILE
   ALWAYS_ENABLE
@@ -162,10 +159,10 @@ opm_add_test(flow_blackoil_noelemctx
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_noelemctx.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 	)
 target_sources(flow_blackoil_noelemctx PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
-target_link_libraries(flow_blackoil_noelemctx TracyClient)
+target_link_libraries(flow_blackoil_noelemctx Tracy::TracyClient)
 opm_add_test(flow_blackoil_fast
   ONLY_COMPILE
   ALWAYS_ENABLE
@@ -173,10 +170,10 @@ opm_add_test(flow_blackoil_fast
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_fast.cpp 
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 	)
 target_sources(flow_blackoil_fast PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
-target_link_libraries(flow_blackoil_fast TracyClient)
+target_link_libraries(flow_blackoil_fast Tracy::TracyClient)
 
 
 opm_add_test(flow_blackoil_drygas
@@ -186,9 +183,9 @@ opm_add_test(flow_blackoil_drygas
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_drygas.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 )
-target_link_libraries(flow_blackoil_drygas TracyClient)
+target_link_libraries(flow_blackoil_drygas Tracy::TracyClient)
 
 
 opm_add_test(ebos
@@ -198,7 +195,7 @@ opm_add_test(ebos
   LIBRARIES opmsimulators
   SOURCES
   examples/ebos.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
   )
 
 
@@ -209,7 +206,7 @@ opm_add_test(ebos_experiment
   LIBRARIES opmsimulators
   SOURCES
   examples/ebos_experiment.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
   )
 
 
