@@ -17,6 +17,7 @@
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "config.h"
+#include <exception>
 #include <ebos/eclproblem.hh>
 #include <ebos/eclnewtonmethod.hh>
 #include <ebos/ebos.hh>
@@ -24,7 +25,7 @@
 
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/models/blackoil/blackoilintensivequantitiessimple.hh>
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
 namespace Opm{    
     template<typename TypeTag>
     class EbosProblemFlow: public EbosProblem<TypeTag>{
@@ -144,10 +145,13 @@ namespace Opm{
             auto& residual = linearizer.residual();//use reference
             auto newSolutionUpdate = solutionUpdate;
             Scalar error = this->norm(residual);
-            std::cout << "Linesarch itr org" << iter << " error " << error << std::endl;
+            Scalar well_error = this->well_error();
+            std::cout << "Linesarch itr org" << iter
+                      << " ResError " << error
+                      << " WellError " << well_error << std::endl;
             while((error >= target) && (iter < 5)){
                 iter +=1;
-                newSolutionUpdate *= 0.0;
+                newSolutionUpdate *= 0.5;
                 // update the solution in aux modules
                 
                 
@@ -155,40 +159,44 @@ namespace Opm{
                 //problem().beginIteration();
                 residual = 0;
                 this->linearizeDomain_();
-                //this->linearizeAuxiliaryEquations_();
+                this->linearizeAuxiliaryEquations_();
                 //this->preSolve_(nextSolution,residual);
-                error = norm<Scalar>(residual);
+                error = this->norm(residual);
+                well_error = this->well_error();
                 //this->postSolve_(currentSolution,
                 //                 currentResidual,
                 //                 newSolutionUpdate);
-                //Parent::update_(nextSolution,currentSolution,newSolutionUpdate,currentResidual);
+                Parent::update_(nextSolution,currentSolution,newSolutionUpdate,currentResidual);
                 
                 //this->endIteration_(nextSolution, currentSolution);
                 //problem().endIterations();
                 
-                std::cout << "Linesarch itr " << iter << " error " << error << std::endl;
+                 std::cout << "Linesarch itr " << iter
+                           << " ResError " << error
+                           << " WellError " << well_error << std::endl;
             }
             //previousError_ = error;
         }
         Scalar well_error() const{
             Scalar sum = 0;
-            const auto& well_container = this->localNonShutWells(); 
+            const auto& well_container = this->problem().wellModel().localNonshutWells();
+            using StdWell = StandardWell<TypeTag>;
             for (const auto& well: well_container) {
-                StandardWell* stdwell = dynamic_cast<StandardWell>(well);
+                StdWell* stdwell = dynamic_cast<StdWell*>(well.get());
                 Scalar well_norm;
                 if(!stdwell==0){
-                    auto& residual = stdwell->residual();
+                    auto& residual = stdwell->linSys().residual();
                     well_norm = this->norm(residual);
                 }else{
-                    std::error("not standard wells");
+                    std::runtime_error("not standard wells");
                 }                                    
                 sum += well_norm;                        
             }
             return sum;
         }
 
-        
-        Scalar norm(const GlobalEqVector& vec) const{
+        template<class VectorVector>
+        Scalar norm(const VectorVector& vec) const{
             Scalar sum = 0;
             for(const auto& bvec : vec){
                 for(const auto& val: bvec){
@@ -197,8 +205,8 @@ namespace Opm{
             }
             // maybe add rhs of auxModules i.e. wells and aquifers
             return sum;
-
         }
+        
         bool proceed_(){
             std::cout << "----------------------Newton with early exit-------------------\n"
                       << std::flush;                
