@@ -131,14 +131,10 @@ endmacro (tests_hook)
 # all setup common to the OPM library modules is done here
 include (OpmLibMain)
 
-
-
-
 include(OpmBashCompletion)
 
-
-#add_library(moduleVersion OBJECT opm/simulators/utils/moduleVersion.cpp)
-#set_property(TARGET moduleVersion PROPERTY POSITION_INDEPENDENT_CODE ON)
+add_library(moduleVersionExp OBJECT opm/simulators/utils/moduleVersion.cpp)
+set_property(TARGET moduleVersionExp PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 # Strictly we only depend on the update-version target,
 # but this is not exposed in a super-build.
@@ -153,7 +149,7 @@ opm_add_test(flow_blackoil_tracy
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_tracy.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 )
 target_link_libraries(flow_blackoil_tracy TracyClient)
 opm_add_test(flow_blackoil_noelemctx
@@ -163,7 +159,7 @@ opm_add_test(flow_blackoil_noelemctx
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_noelemctx.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 	)
 target_sources(flow_blackoil_noelemctx PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
 target_link_libraries(flow_blackoil_noelemctx TracyClient)
@@ -174,7 +170,7 @@ opm_add_test(flow_blackoil_fast
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_fast.cpp 
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 	)
 target_sources(flow_blackoil_fast PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
 target_link_libraries(flow_blackoil_fast TracyClient)
@@ -187,7 +183,7 @@ opm_add_test(flow_blackoil_drygas
   LIBRARIES opmsimulators
   SOURCES
   examples/flow_blackoil_drygas.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
 )
 target_link_libraries(flow_blackoil_drygas TracyClient)
 
@@ -199,7 +195,7 @@ opm_add_test(ebos
   LIBRARIES opmsimulators
   SOURCES
   examples/ebos.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
   )
 
 
@@ -210,7 +206,7 @@ opm_add_test(ebos_experiment
   LIBRARIES opmsimulators
   SOURCES
   examples/ebos_experiment.cpp
-  $<TARGET_OBJECTS:moduleVersion>
+  $<TARGET_OBJECTS:moduleVersionExp>
   )
 
 
