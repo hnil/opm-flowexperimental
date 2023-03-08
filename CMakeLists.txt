@@ -17,6 +17,8 @@
 # Mandatory call to project
 project(opm-flowexperimental C CXX)
 
+cmake_minimum_required(VERSION 3.15)
+
 option(SIBLING_SEARCH "Search for other modules in sibling directories?" ON)
 set( USE_OPENMP_DEFAULT OFF ) # Use of OpenMP is considered experimental
 
