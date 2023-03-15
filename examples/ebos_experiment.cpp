@@ -68,7 +68,7 @@ namespace Opm{
         }
         void finishInit(){
             Parent::finishInit();
-            //this->simulator().model().addAuxiliaryModule(*monitorAux_);
+            this->simulator().model().addAuxiliaryModule(&monitorAux_);
         }
     private:
         using MonitorAuxType = MonitoringAuxModule<TypeTag>;
