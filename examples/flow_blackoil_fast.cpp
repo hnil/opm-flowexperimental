@@ -32,69 +32,8 @@
 #include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
 #include <ebos/equil/initstateequil.hh>
 #include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
-
-namespace Opm{
-    template<typename TypeTag>
-    class EclProblemNew: public EclProblem<TypeTag>{
-        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
-        using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
-        using DirectionalMobilityPtr = ::Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
-        using MaterialLaw = GetPropType<TypeTag, Properties::MaterialLaw>;
-        using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-        enum { numPhases = FluidSystem::numPhases };
-    public:
-        EclProblemNew(Simulator& simulator): EclProblem<TypeTag>(simulator){
-        }
-        template <class FluidState>
-        void updateRelperms(
-            std::array<Evaluation,numPhases> &mobility,
-            DirectionalMobilityPtr &/*dirMob*/,
-            FluidState &fluidState,
-            unsigned globalSpaceIdx) const
-        {
-            OPM_TIMEBLOCK_LOCAL(updateRelperms);
-            {
-                // calculate relative permeabilities. note that we store the result into the
-                // mobility_ class attribute. the division by the phase viscosity happens later.
-                const auto& materialParams = this->materialLawParams(globalSpaceIdx);
-                MaterialLaw::relativePermeabilities(mobility, materialParams, fluidState);
-                Valgrind::CheckDefined(mobility);
-            }
-        };
-    };
-    template<typename TypeTag>
-    class BlackOilModelFv: public BlackOilModel<TypeTag>{
-        using Parent = BlackOilModel<TypeTag>;
-        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
-        using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
-    public:
-        BlackOilModelFv(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
-        }
-        void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx){
-            std::cout << "----------------------Update quantities-------------------\n"
-                      << std::flush;
-//            Parent::invalidateAndUpdateIntensiveQuantities(timeIdx);
-//             Parent::invalidateAndUpdateIntensiveQuantitiesSimple(*this,solution,/*timeIdx*/0);
-            const auto& primaryVars = this->solution(timeIdx);
-            const auto& problem = this->simulator_.problem();
-            size_t numGridDof = primaryVars.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif                
-            for (unsigned dofIdx = 0; dofIdx < numGridDof; ++dofIdx) {
-                const auto& primaryVar = primaryVars[dofIdx];
-                auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
-                intquant.update(problem, primaryVar, dofIdx, timeIdx);
-            }
-            
-            std::fill(this->intensiveQuantityCacheUpToDate_[timeIdx].begin(),
-                      this->intensiveQuantityCacheUpToDate_[timeIdx].end(),
-                      /*value=*/true);
-            
-        }
-    };
-}
-
+#include "BlackOilModelFv.hpp"
+#include "EclProblemSimple.hpp"
 
 namespace Opm {
 namespace Properties {
@@ -117,7 +56,7 @@ namespace TTag {
     };
     template<class TypeTag>
     struct Problem<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclProblemNew<TypeTag>;
+        using type = EclProblemSimple<TypeTag>;
     };
 
     template<class TypeTag>

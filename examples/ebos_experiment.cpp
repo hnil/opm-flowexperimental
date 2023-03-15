@@ -25,8 +25,30 @@
 
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
-namespace Opm{    
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
+#include <opm/models/discretization/common/baseauxiliarymodule.hh>
+#include <opm/simulators/wells/BlackoilWellModel.hpp>
+
+namespace Opm{
+    template<typename TypeTag>
+    class MonitoringAuxModule : public BaseAuxiliaryModule<TypeTag>
+    {      
+        using GlobalEqVector = GetPropType<TypeTag, Properties::GlobalEqVector>;
+        using NeighborSet = typename BaseAuxiliaryModule<TypeTag>::NeighborSet;
+        using SparseMatrixAdapter = GetPropType<TypeTag, Properties::SparseMatrixAdapter>;
+    public:
+        void postSolve(GlobalEqVector& deltaX){
+            std::cout << "Dummy PostSolve Aux" << std::endl;
+        }
+        void addNeighbors(std::vector<NeighborSet>& neighbors) const{};
+        void applyInitial(){};
+        unsigned numDofs() const{return 0;};
+        void linearize(SparseMatrixAdapter& matrix, GlobalEqVector& residual){
+            std::cout << "Dummy Linearize Aux" << std::endl;
+        };
+    };
+
+    
     template<typename TypeTag>
     class EbosProblemFlow: public EbosProblem<TypeTag>{
     public:
@@ -44,11 +66,34 @@ namespace Opm{
             }
             Parent::timeIntegration();
         }
-        
+        void finishInit(){
+            Parent::finishInit();
+            //this->simulator().model().addAuxiliaryModule(*monitorAux_);
+        }
+    private:
+        using MonitorAuxType = MonitoringAuxModule<TypeTag>;
+        MonitorAuxType monitorAux_;    
+    
         //private:
         //std::unique_ptr<TimeStepper> adaptiveTimeStepping_;
     };
 
+    template<typename TypeTag>
+    class BlackoilWellModelFvExtra: public BlackoilWellModel<TypeTag>{
+        using Parent = BlackoilWellModel<TypeTag>;
+        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
+    public:
+        BlackoilWellModelFvExtra(Simulator& ebosSimulator): Parent(ebosSimulator) {};
+        void beginIteration(){
+            Parent::beginIteration();
+            std::cout << "EclWellModelFvExtra begin iteration" << std::endl;
+        }
+        void endIteration(){
+            Parent::endIteration();
+            std::cout << "EclWellModelFvExtra end iteration" << std::endl;
+        }
+    };
+        
     template<typename TypeTag>
     class BlackOilModelFv: public BlackOilModel<TypeTag>{
         using Parent = BlackOilModel<TypeTag>;
@@ -244,6 +289,11 @@ struct Model<TypeTag, TTag::EclFlowProblemEbos> {
     using type = BlackOilModelFv<TypeTag>;
 };    
 
+template<class TypeTag>
+struct EclWellModel<TypeTag, TTag::EclFlowProblemEbos> {
+    using type = BlackoilWellModelFvExtra<TypeTag>;
+};
+    
 template<class TypeTag>
 struct NewtonMethod<TypeTag, TTag::EclFlowProblemEbos> {
     using type = EclNewtonMethodLinesearch<TypeTag>;
