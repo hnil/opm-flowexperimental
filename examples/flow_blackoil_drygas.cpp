@@ -17,7 +17,7 @@
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "config.h"
-#if USE_TRACY
+#if HAVE_TRACY
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyC.h"
 #define OPM_TIMEBLOCK(blockname);// ZoneNamedN(blockname, #blockname, true);

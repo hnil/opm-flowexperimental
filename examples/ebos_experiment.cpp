@@ -178,47 +178,39 @@ namespace Opm{
                 std::cout << "----------------------Newton update_ With Linesearch------------\n"
                           << std::flush;
                 //}
-                
-            Parent::update_(nextSolution,currentSolution,solutionUpdate,currentResidual);
-            // calculate new residual
-            Scalar previousError = this->norm(currentResidual);
-            Scalar well_errors = this->well_error();
-            int iter = 0;
-            std::cout << "Previous error" << previousError << std::endl;
-            Scalar target = previousError;
             auto& linearizer = this->model().linearizer();
             auto& residual = linearizer.residual();//use reference
             auto newSolutionUpdate = solutionUpdate;
             Scalar error = this->norm(residual);
             Scalar well_error = this->well_error();
-            std::cout << "Linesarch itr org" << iter
+            int iter = 0;
+            std::cout << "Linesarch itr " << iter
                       << " ResError " << error
-                      << " WellError " << well_error << std::endl;
+                      << " WellError " << well_error << std::endl;    
+            Parent::update_(nextSolution,currentSolution,solutionUpdate,currentResidual);
+            this->problem().endIteration();               
+            Scalar target = error;
+            error = 1e99;
             while((error >= target) && (iter < 5)){
                 iter +=1;
-                newSolutionUpdate *= 0.5;
                 // update the solution in aux modules
-                
-                
                 //this->beginIteration_();
-                //problem().beginIteration();
-                residual = 0;
+                this->problem().beginIteration();
                 this->linearizeDomain_();
                 this->linearizeAuxiliaryEquations_();
-                //this->preSolve_(nextSolution,residual);
+                this->preSolve_(nextSolution,residual);
+                this->postSolve_(currentSolution,
+                                 currentResidual,
+                                 newSolutionUpdate);
+                //this->endIteration_(nextSolution, currentSolution);                
                 error = this->norm(residual);
                 well_error = this->well_error();
-                //this->postSolve_(currentSolution,
-                //                 currentResidual,
-                //                 newSolutionUpdate);
+                std::cout << "Linesarch itr " << iter
+                          << " ResError " << error
+                          << " WellError " << well_error << std::endl;
+                newSolutionUpdate *= 0.5;
                 Parent::update_(nextSolution,currentSolution,newSolutionUpdate,currentResidual);
-                
-                //this->endIteration_(nextSolution, currentSolution);
-                //problem().endIterations();
-                
-                 std::cout << "Linesarch itr " << iter
-                           << " ResError " << error
-                           << " WellError " << well_error << std::endl;
+                this->problem().endIteration();               
             }
             //previousError_ = error;
         }

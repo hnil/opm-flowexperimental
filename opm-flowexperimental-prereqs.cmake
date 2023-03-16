@@ -1,9 +1,7 @@
 # defines that must be present in config.h for our headers
-set (opm-testing_CONFIG_VAR
+set (opm-flowexperimental_CONFIG_VAR
   HAVE_OPM_GRID
   HAVE_PTHREAD
-  HAVE_EWOMS
-  HAVE_ERT
   HAVE_MPI
   HAVE_PETSC
   HAVE_SUITESPARSE_UMFPACK_H
@@ -13,6 +11,7 @@ set (opm-testing_CONFIG_VAR
   DUNE_ISTL_VERSION_REVISION
   HAVE_SUITESPARSE_UMFPACK
   HAVE_HDF5
+  HAVE_TRACY
   )
 
 # dependencies
@@ -43,7 +42,7 @@ set (opm-flowexperimental_DEPS
   "opm-simulators REQUIRED"
   "Damaris 1.7"
   "HDF5"  
-  "Tracy REQUIRED"
+  "Tracy"
   )
 
 find_package_deps(opm-flowexperimental)
