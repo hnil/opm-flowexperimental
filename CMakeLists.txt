@@ -184,6 +184,7 @@ opm_add_test(flow_blackoil_drygas
   $<TARGET_OBJECTS:moduleVersionExp>
 	)
 
+set(HAVE_TRACY 0)
 if(USE_TRACY)
 	set(HAVE_TRACY 1)
 	target_link_libraries(flow_blackoil_fast Tracy::TracyClient)

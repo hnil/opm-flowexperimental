@@ -173,6 +173,7 @@ public:
                 unsigned globalSpaceIdx,
                 unsigned timeIdx)
     {
+        
         OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantitiesGenneral);
         const auto& waterpvt = FluidSystem::waterPvt().template getRealPvt<Opm::WaterPvtApproach::ConstantCompressibilityWater>();
         const auto& gaspvt = FluidSystem::gasPvt().template getRealPvt<Opm::GasPvtApproach::WetGas>();
@@ -189,7 +190,7 @@ public:
                 const GasPvtT& gaspvt,
                 const OilPvtT& oilpvt)
     {
-        
+        this->extrusionFactor_ = 1.0;
         OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantities);
         Evaluation T=298.0;
         std::array<bool, numPhases> saturated;

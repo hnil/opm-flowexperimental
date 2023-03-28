@@ -1,6 +1,6 @@
 #ifndef BLACK_OIL_MODEL_FV_HPP
 #define BLACK_OIL_MODEL_FV_HPP
-
+#include <ebos/FIBlackOilModel.hpp>
 namespace Opm{
     template<typename TypeTag>
     class BlackOilModelFv: public BlackOilModel<TypeTag>{
@@ -32,6 +32,20 @@ namespace Opm{
                       /*value=*/true);
             
         }
+
+        const IntensiveQuantities& intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
+            const auto& primaryVars = this->solution(timeIdx);
+            const auto& problem = this->simulator_.problem();
+            const auto intquant = this->cachedIntensiveQuantities(globalIdx, timeIdx);
+            if (!this->enableIntensiveQuantityCache_){
+                OPM_THROW(std::logic_error, "Run without intentive quantites not enabled: Use --enable-intensive-quantity=true");
+            }
+            if(!intquant){
+                OPM_THROW(std::logic_error, "Intensive quantites need to be updated in code");
+            }    
+            return *intquant;    
+        }
+
     };
 }
 #endif

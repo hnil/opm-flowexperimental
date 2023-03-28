@@ -95,12 +95,12 @@ namespace Opm{
     };
         
     template<typename TypeTag>
-    class BlackOilModelFv: public BlackOilModel<TypeTag>{
+    class BlackOilModelFvLocal: public BlackOilModel<TypeTag>{
         using Parent = BlackOilModel<TypeTag>;
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
     public:
-        BlackOilModelFv(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
+        BlackOilModelFvLocal(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
         }
         void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx){
             std::cout << "----------------------Update quantities-------------------\n"
@@ -278,7 +278,7 @@ struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
 
 template<class TypeTag>
 struct Model<TypeTag, TTag::EclFlowProblemEbos> {
-    using type = BlackOilModelFv<TypeTag>;
+    using type = BlackOilModelFvLocal<TypeTag>;
 };    
 
 template<class TypeTag>
@@ -358,10 +358,10 @@ struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulato
 //     using type = EbosProblem<TypeTag>;
 // };
     
-// template<class TypeTag>
-// struct EclEnableAquifers<TypeTag, TTag::EclFlowProblemTest> {
-//     static constexpr bool value = false;
-// };
+template<class TypeTag>
+struct EclEnableAquifers<TypeTag, TTag::EclFlowProblemEbos> {
+     static constexpr bool value = false;
+};
 }
 }
 int main(int argc, char** argv)
