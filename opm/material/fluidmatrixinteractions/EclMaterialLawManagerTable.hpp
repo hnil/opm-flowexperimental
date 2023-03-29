@@ -36,7 +36,8 @@
 #include <opm/material/fluidmatrixinteractions/SatCurveMultiplexer.hpp>
 #include <opm/material/fluidmatrixinteractions/EclEpsTwoPhaseLaw.hpp>
 #include <opm/material/fluidmatrixinteractions/EclHysteresisTwoPhaseLaw.hpp>
-#include <opm/material/fluidmatrixinteractions/EclMultiplexerMaterial.hpp>
+#include <opm/material/fluidmatrixinteractions/EclMultiplexerMaterialParams.hpp>
+#include <opm/material/fluidmatrixinteractions/EclDefaultMaterial.hpp>
 #include <opm/material/fluidmatrixinteractions/MaterialTraits.hpp>
 
 #include <cassert>
@@ -112,7 +113,9 @@ private:
 
 public:
     // the three-phase material law used by the simulation
-    using MaterialLaw = EclMultiplexerMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw, GasWaterTwoPhaseLaw>;
+    //using MaterialLaw = EclMultiplexerMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw, GasWaterTwoPhaseLaw>;
+    //using MaterialLawParams = typename MaterialLaw::Params;
+    using MaterialLaw = EclDefaultMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw>;
     using MaterialLawParams = typename MaterialLaw::Params;
 
     EclMaterialLawManagerTable();
@@ -192,12 +195,12 @@ public:
     { return imbnumRegionArray_[elemIdx]; }
 
     template <class FluidState>
-    void updateHysteresis(const FluidState& fluidState, unsigned elemIdx)
+    bool updateHysteresis(const FluidState& fluidState, unsigned elemIdx)
     {
         if (!enableHysteresis())
-            return;
+            return false;
 
-        MaterialLaw::updateHysteresis(materialLawParams_[elemIdx], fluidState);
+        return MaterialLaw::updateHysteresis(materialLawParams_[elemIdx], fluidState);
     }
 
     void oilWaterHysteresisParams(Scalar& pcSwMdc,

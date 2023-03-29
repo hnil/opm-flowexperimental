@@ -192,7 +192,7 @@ public:
     {
         this->extrusionFactor_ = 1.0;
         OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantities);
-        Evaluation T=298.0;
+        /*Evaluation T=298.0;*/
         std::array<bool, numPhases> saturated;
         for(int i=0; i< numPhases; ++i){
             saturated[i] = true;
@@ -450,7 +450,7 @@ public:
   
        {
             OPM_TIMEBLOCK_LOCAL(WaterPvt);
-            Evaluation salt= 0.0;
+            /*Evaluation salt= 0.0;*/
             const Evaluation& p = fluidState_.pressure(waterPhaseIdx);
             Evaluation b;
             Evaluation mu;
