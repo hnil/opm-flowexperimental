@@ -11,8 +11,9 @@ namespace Opm{
         BlackOilModelFv(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
         }
         void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx){
-            std::cout << "----------------------Update quantities-------------------\n"
-                      << std::flush;
+            OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantities);
+//            std::cout << "----------------------Update quantities-------------------\n"
+//                      << std::flush;
 //            Parent::invalidateAndUpdateIntensiveQuantities(timeIdx);
 //             Parent::invalidateAndUpdateIntensiveQuantitiesSimple(*this,solution,/*timeIdx*/0);
             const auto& primaryVars = this->solution(timeIdx);
@@ -34,6 +35,7 @@ namespace Opm{
         }
 
         const IntensiveQuantities& intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
+            OPM_TIMEBLOCK_LOCAL(intensiveQuantities);
             const auto& primaryVars = this->solution(timeIdx);
             const auto& problem = this->simulator_.problem();
             const auto intquant = this->cachedIntensiveQuantities(globalIdx, timeIdx);
