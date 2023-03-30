@@ -28,7 +28,7 @@
 #include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
 #include <opm/models/discretization/common/baseauxiliarymodule.hh>
 #include <opm/simulators/wells/BlackoilWellModel.hpp>
-
+#include "BlackOilModelFvNoCache.hpp"
 namespace Opm{
     template<typename TypeTag>
     class MonitoringAuxModule : public BaseAuxiliaryModule<TypeTag>
@@ -94,68 +94,6 @@ namespace Opm{
         }
     };
         
-    template<typename TypeTag>
-    class BlackOilModelFvLocal: public BlackOilModel<TypeTag>{
-        using Parent = BlackOilModel<TypeTag>;
-        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
-        using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
-    public:
-        BlackOilModelFvLocal(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
-        }
-        void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx){
-            std::cout << "----------------------Update quantities-------------------\n"
-                << std::flush;
-//            Parent::invalidateAndUpdateIntensiveQuantities(timeIdx);
-//             Parent::invalidateAndUpdateIntensiveQuantitiesSimple(*this,solution,/*timeIdx*/0);
-            const auto& primaryVars = this->solution(timeIdx);
-            const auto& problem = this->simulator_.problem();
-            size_t numGridDof = primaryVars.size();
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif                
-            for (unsigned dofIdx = 0; dofIdx < numGridDof; ++dofIdx) {
-                const auto& primaryVar = primaryVars[dofIdx];
-                auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
-                intquant.update(problem, primaryVar, dofIdx, timeIdx);
-            }
-            
-            std::fill(this->intensiveQuantityCacheUpToDate_[timeIdx].begin(),
-                      this->intensiveQuantityCacheUpToDate_[timeIdx].end(),
-                      /*value=*/true);
-            
-        }
-        const IntensiveQuantities* cachedIntensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
-            //std::cout << "----------------------Update cached quantites with globalIdx-------------------\n";
-            //const IntensiveQuantities* intQuants = Parent::cachedIntensiveQuantities(globalIdx,timeIdx);return intQuants;
-            //const auto& primaryVar = this->solution(timeIdx)[globalIdx];
-            //const auto& problem = this->simulator_.problem();
-            IntensiveQuantities* intQuants = &(this->intensiveQuantityCache_[timeIdx][globalIdx]);
-            if (!(this->enableIntensiveQuantityCache_) ||
-                !(this->intensiveQuantityCacheUpToDate_[timeIdx][globalIdx])){
-                ///intQuants->update(problem,primaryVar, globalIdx, timeIdx);
-                return 0;
-            }else{
-                return intQuants;
-            }
-            
-        }
-        IntensiveQuantities intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
-            const auto& primaryVar = this->solution(timeIdx)[globalIdx];
-            const auto& problem = this->simulator_.problem();
-            //IntensiveQuantities* intQuants = &(this->intensiveQuantityCache_[timeIdx][globalIdx]);
-            if (!(this->enableIntensiveQuantityCache_) ||
-                !(this->intensiveQuantityCacheUpToDate_[timeIdx][globalIdx])){
-                IntensiveQuantities intQuants;
-                intQuants.update(problem,primaryVar, globalIdx, timeIdx);
-                return intQuants;// reqiored for updating extrution factor
-            }else{
-                IntensiveQuantities intQuants = (this->intensiveQuantityCache_[timeIdx][globalIdx]);
-                return intQuants;
-            }
-
-        }
-        
-    };
 
     
     template<typename TypeTag>
@@ -278,7 +216,8 @@ struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
 
 template<class TypeTag>
 struct Model<TypeTag, TTag::EclFlowProblemEbos> {
-    using type = BlackOilModelFvLocal<TypeTag>;
+    using type = BlackOilModelFvNoCache<TypeTag>;
+    // using type = BlackOilModelFvLocal<TypeTag>;
 };    
 
 template<class TypeTag>

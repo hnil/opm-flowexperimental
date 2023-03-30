@@ -25,12 +25,14 @@
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 #include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
-  
+#include "BlackOilModelFvNoCache.hpp"  
 // the current code use eclnewtonmethod adding other conditions to proceed_ should do the trick for KA
 // adding linearshe sould be chaning the update_ function in the same class with condition that the error is reduced.
 // the trick is to be able to recalculate the residual from here.
 // unsure where the timestepping is done from suggestedtime??
 // suggestTimeStep is taken from newton solver in problem.limitTimestep
+
+
 namespace Opm {
 namespace Properties {
 namespace TTag {
@@ -39,8 +41,14 @@ struct EclFlowProblemEbos {
 };
 }
 
-
-
+template<class TypeTag>
+struct Model<TypeTag, TTag::EclFlowProblemEbos> {
+    using type = BlackOilModelFvNoCache<TypeTag>;
+};
+template<class TypeTag>
+struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
+    using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
+};
 // Set the problem class
 template<class TypeTag>
 struct Problem<TypeTag, TTag::EclFlowProblemEbos> {

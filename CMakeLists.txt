@@ -18,10 +18,19 @@
 project(opm-flowexperimental C CXX)
 
 cmake_minimum_required(VERSION 3.15)
-option(USE_TRACY "Search for other modules in sibling directories?" OFF) 
+option(USE_TRACY "Search for other modules in sibling directories?" OFF)
+option(USE_EASYPROFILER "Search for other modules in sibling directories?" OFF) 
 option(SIBLING_SEARCH "Search for other modules in sibling directories?" ON)
 set( USE_OPENMP_DEFAULT OFF ) # Use of OpenMP is considered experimental
-
+set(HAVE_EASYPROFILER 0)
+if(USE_EASYPROFILER)
+	set(easy_profiler_DIR
+	"${PROJECT_SOURCE_DIR}/thirdparty/easy_profiler/lib/cmake/easy_profiler/"
+	CACHE LOCATION
+	"Build and install easy_profiler to this directory")
+	set(HAVE_EASYPROFILER 1)
+	find_package(easy_profiler REQUIRED)
+endif()
 # The following was copied from CMakeLists.txt in opm-common.
 # TODO: factor out the common parts in opm-common and opm-simulator as a cmake module
 
@@ -151,6 +160,18 @@ opm_add_test(flow_blackoil_tracy
   examples/flow_blackoil_tracy.cpp
   $<TARGET_OBJECTS:moduleVersionExp>
 	)
+if(USE_EASYPROFILER)
+	opm_add_test(flow_blackoil_easyprofiler
+		ONLY_COMPILE
+		ALWAYS_ENABLE
+		DEPENDS opmsimulators
+		LIBRARIES opmsimulators
+		SOURCES
+		examples/flow_blackoil_easyprofiler.cpp
+		$<TARGET_OBJECTS:moduleVersionExp>
+		)
+endif()
+
 
 opm_add_test(flow_blackoil_noelemctx
   ONLY_COMPILE
@@ -162,6 +183,18 @@ opm_add_test(flow_blackoil_noelemctx
   $<TARGET_OBJECTS:moduleVersionExp>
 	)
 target_sources(flow_blackoil_noelemctx PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+opm_add_test(flow_blackoil_nocache
+  ONLY_COMPILE
+  ALWAYS_ENABLE
+  DEPENDS opmsimulators
+  LIBRARIES opmsimulators
+  SOURCES
+  examples/flow_blackoil_nocache.cpp
+  $<TARGET_OBJECTS:moduleVersionExp>
+	)
+target_sources(flow_blackoil_nocache PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
 
 opm_add_test(flow_blackoil_fast
   ONLY_COMPILE
@@ -191,8 +224,12 @@ if(USE_TRACY)
 	target_link_libraries(flow_blackoil_noelemctx Tracy::TracyClient)
 	target_link_libraries(flow_blackoil_drygas Tracy::TracyClient)
 	target_link_libraries(flow_blackoil_tracy Tracy::TracyClient)
+	target_link_libraries(flow_blackoil_nocache Tracy::TracyClient)
 endif()
 
+if(USE_EASYPROFILER)
+	target_link_libraries(flow_blackoil_fast easyprofiler)
+endif()
 
 opm_add_test(ebos
   ONLY_COMPILE
