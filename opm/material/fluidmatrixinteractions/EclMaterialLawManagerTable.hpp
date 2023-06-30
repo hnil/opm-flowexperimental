@@ -38,6 +38,7 @@
 #include <opm/material/fluidmatrixinteractions/EclHysteresisTwoPhaseLaw.hpp>
 #include <opm/material/fluidmatrixinteractions/EclMultiplexerMaterialParams.hpp>
 #include <opm/material/fluidmatrixinteractions/EclDefaultMaterial.hpp>
+#include <opm/material/fluidmatrixinteractions/EclTwoPhaseMaterial.hpp>
 #include <opm/material/fluidmatrixinteractions/MaterialTraits.hpp>
 
 #include <cassert>
@@ -66,7 +67,7 @@ class Sof3Table;
  * \brief Provides an simple way to create and manage the material law objects
  *        for a complete ECL deck.
  */
-template <class TraitsT>
+template <class TraitsT, int myPhases=3>//, int myPhases>
 class EclMaterialLawManagerTable
 {
 private:
@@ -110,12 +111,25 @@ private:
     using GasOilTwoPhaseHystParams = typename GasOilTwoPhaseLaw::Params;
     using OilWaterTwoPhaseHystParams = typename OilWaterTwoPhaseLaw::Params;
     using GasWaterTwoPhaseHystParams = typename GasWaterTwoPhaseLaw::Params;
+    
+    template <int numP,class Dummy>
+    struct SelectMaterialLaw
+    {
+        using type = EclDefaultMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw>;
+    };
+
+    template <class Dummy>
+    struct SelectMaterialLaw<2,Dummy>
+    {
+        using type = EclTwoPhaseMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw, GasWaterTwoPhaseLaw>;
+    };
 
 public:
+
     // the three-phase material law used by the simulation
     //using MaterialLaw = EclMultiplexerMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw, GasWaterTwoPhaseLaw>;
     //using MaterialLawParams = typename MaterialLaw::Params;
-    using MaterialLaw = EclDefaultMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw>;
+    using MaterialLaw = typename SelectMaterialLaw<myPhases,int>::type;
     using MaterialLawParams = typename MaterialLaw::Params;
 
     EclMaterialLawManagerTable();
@@ -352,5 +366,4 @@ private:
     std::shared_ptr<EclEpsConfig> gasWaterConfig;
 };
 } // namespace Opm
-
 #endif

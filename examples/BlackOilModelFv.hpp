@@ -7,6 +7,14 @@ namespace Opm{
         using Parent = BlackOilModel<TypeTag>;
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
+        using Indices = GetPropType<TypeTag, Properties::Indices>;
+        static constexpr bool waterEnabled = Indices::waterEnabled;
+        static constexpr bool gasEnabled = Indices::gasEnabled;
+        static constexpr bool oilEnabled = Indices::oilEnabled;
+        enum { numPhases = getPropValue<TypeTag, Properties::NumPhases>() };
+
+
+
     public:
         BlackOilModelFv(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
         }
@@ -19,6 +27,7 @@ namespace Opm{
             const auto& primaryVars = this->solution(timeIdx);
             const auto& problem = this->simulator_.problem();
             size_t numGridDof = primaryVars.size();
+                        
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif                
@@ -26,6 +35,7 @@ namespace Opm{
                 const auto& primaryVar = primaryVars[dofIdx];
                 auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
                 intquant.update(problem, primaryVar, dofIdx, timeIdx);
+                //intquant.update(problem,priVars, globalSpaceIdx, timeIdx, waterpvt, gaspvt, oilpvt);
             }
             
             std::fill(this->intensiveQuantityCacheUpToDate_[timeIdx].begin(),

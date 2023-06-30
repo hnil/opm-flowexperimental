@@ -43,7 +43,7 @@
 #include <opm/utility/CopyablePtr.hpp>
 #include <opm/common/ErrorMacros.hpp>
 #include <dune/common/fmatrix.hh>
-
+#include <opm/material/fluidsystems/blackoilpvt/WetGasPvt.hpp>
 #include <cstring>
 #include <utility>
 
@@ -173,12 +173,40 @@ public:
                 unsigned globalSpaceIdx,
                 unsigned timeIdx)
     {
-        
+        bool valid=false;
         OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantitiesGenneral);
-        const auto& waterpvt = FluidSystem::waterPvt().template getRealPvt<Opm::WaterPvtApproach::ConstantCompressibilityWater>();
-        const auto& gaspvt = FluidSystem::gasPvt().template getRealPvt<Opm::GasPvtApproach::WetGas>();
-        const auto& oilpvt = FluidSystem::oilPvt().template getRealPvt<Opm::OilPvtApproach::LiveOil>();;
-        this->update(problem,priVars, globalSpaceIdx, timeIdx, waterpvt, gaspvt, oilpvt);
+        if constexpr (waterEnabled && oilEnabled && gasEnabled) {
+            const auto& waterpvt = FluidSystem::waterPvt().template getRealPvt<Opm::WaterPvtApproach::ConstantCompressibilityWater>();
+            const auto& gaspvt = FluidSystem::gasPvt().template getRealPvt<Opm::GasPvtApproach::WetGas>();
+            const auto& oilpvt = FluidSystem::oilPvt().template getRealPvt<Opm::OilPvtApproach::LiveOil>();;
+            this->update(problem,priVars, globalSpaceIdx, timeIdx, waterpvt, gaspvt, oilpvt);
+            valid = true;
+        }
+        if constexpr (oilEnabled && gasEnabled && not(waterEnabled) ) {
+            ConstantCompressibilityWaterPvt<Scalar> waterpvt;//dummy
+            const auto& gaspvt = FluidSystem::gasPvt().template getRealPvt<Opm::GasPvtApproach::WetGas>();
+            const auto& oilpvt = FluidSystem::oilPvt().template getRealPvt<Opm::OilPvtApproach::LiveOil>();;
+            this->update(problem,priVars, globalSpaceIdx, timeIdx, waterpvt, gaspvt, oilpvt);
+            valid = true;
+        }
+        if constexpr (waterEnabled && gasEnabled && not(oilEnabled)) {
+            const auto& waterpvt = FluidSystem::waterPvt().template getRealPvt<Opm::WaterPvtApproach::ConstantCompressibilityWater>();
+            const auto& gaspvt = FluidSystem::gasPvt().template getRealPvt<Opm::GasPvtApproach::WetGas>();
+            LiveOilPvt<Scalar> oilpvt;// dummy
+            //const auto& oilpvt = FluidSystem::oilPvt().template getRealPvt<Opm::OilPvtApproach::LiveOil>();;
+            this->update(problem,priVars, globalSpaceIdx, timeIdx, waterpvt, gaspvt, oilpvt);
+            valid = true;
+        }
+        if constexpr (waterEnabled && oilEnabled && not(gasEnabled)) {
+            const auto& waterpvt = FluidSystem::waterPvt().template getRealPvt<Opm::WaterPvtApproach::ConstantCompressibilityWater>();
+            WetGasPvt<Scalar> gaspvt; //Dummy FluidSystem::gasPvt().template getRealPvt<Opm::GasPvtApproach::WetGas>();
+            //LiveOilPvt<Scalar> oilpvt;// dummy
+            const auto& oilpvt = FluidSystem::oilPvt().template getRealPvt<Opm::OilPvtApproach::LiveOil>();;
+            this->update(problem,priVars, globalSpaceIdx, timeIdx, waterpvt, gaspvt, oilpvt);
+            valid = true;
+        }
+        assert(valid);
+        
     }
     
     template<class WaterPvtT, class OilPvtT,class GasPvtT>

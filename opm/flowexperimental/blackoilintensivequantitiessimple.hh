@@ -34,6 +34,7 @@
 #include <opm/models/blackoil/blackoilfoammodules.hh>
 #include <opm/models/blackoil/blackoilbrinemodules.hh>
 #include <opm/models/blackoil/blackoilenergymodules.hh>
+#include <opm/flowexperimental/blackoilenergymodulesfv.hh>
 #include <opm/models/blackoil/blackoildiffusionmodule.hh>
 #include <opm/models/blackoil/blackoilmicpmodules.hh>
 #include <opm/material/fluidstates/BlackOilFluidState.hpp>
@@ -68,7 +69,7 @@ class BlackOilIntensiveQuantitiesSimple
     , public BlackOilPolymerIntensiveQuantities<TypeTag>
     , public BlackOilFoamIntensiveQuantities<TypeTag>
     , public BlackOilBrineIntensiveQuantities<TypeTag>
-    , public BlackOilEnergyIntensiveQuantities<TypeTag>
+    , public BlackOilEnergyIntensiveQuantitiesFV<TypeTag>
     , public BlackOilMICPIntensiveQuantities<TypeTag>
 {
     using ParentType = GetPropType<TypeTag, Properties::DiscIntensiveQuantities>;
@@ -188,7 +189,7 @@ public:
             ? problem.maxGasDissolutionFactor(timeIdx, globalSpaceIdx)
             : 0.0;
 
-        //asImp_().updateTemperature_(elemCtx, dofIdx, timeIdx);
+        asImp_().updateTemperature_(problem, priVars, globalSpaceIdx, timeIdx);
 
         unsigned pvtRegionIdx = priVars.pvtRegionIndex();
         fluidState_.setPvtRegionIndex(pvtRegionIdx);
@@ -596,7 +597,7 @@ private:
     friend BlackOilSolventIntensiveQuantities<TypeTag>;
     friend BlackOilExtboIntensiveQuantities<TypeTag>;
     friend BlackOilPolymerIntensiveQuantities<TypeTag>;
-    friend BlackOilEnergyIntensiveQuantities<TypeTag>;
+    friend BlackOilEnergyIntensiveQuantitiesFV<TypeTag>;
     friend BlackOilFoamIntensiveQuantities<TypeTag>;
     friend BlackOilBrineIntensiveQuantities<TypeTag>;
     friend BlackOilMICPIntensiveQuantities<TypeTag>;

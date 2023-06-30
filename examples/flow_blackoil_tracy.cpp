@@ -32,9 +32,9 @@
 namespace Opm {
 namespace Properties {
 namespace TTag {
-struct EclFlowProblemTest {
-    using InheritsFrom = std::tuple<EclFlowProblem>;
-};
+    struct EclFlowProblemTest {
+        using InheritsFrom = std::tuple<EclFlowProblem>;
+    };
 }
     template<class TypeTag>
     struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
@@ -44,9 +44,27 @@ struct EclFlowProblemTest {
 
     template<class TypeTag>
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
+    // flow's well model only works with surface volumes
+    template<class TypeTag>
+    struct BlackoilConserveSurfaceVolume<TypeTag, TTag::EclFlowProblemTest> {
+        static constexpr bool value = false;
+    };
+    // the values for the residual are for the whole cell instead of for a cubic meter of the cell
+    template<class TypeTag>
+    struct UseVolumetricResidual<TypeTag, TTag::EclFlowProblemTest> {
+        static constexpr bool value = false;
+    };
     
+    // use flow's linear solver backend for now
+    template<class TypeTag>
+    struct LinearSolverSplice<TypeTag, TTag::EclFlowProblemTest> {
+        using type = TTag::FlowIstlSolver;
+    };
 }
+     
 }
+   
+
 int main(int argc, char** argv)
 {
     OPM_TIMEBLOCK(fullSimulation);

@@ -5,10 +5,17 @@ namespace Opm{
     class EclProblemSimple: public EclProblem<TypeTag>{
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
+        using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
         using DirectionalMobilityPtr = ::Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
         using MaterialLaw = GetPropType<TypeTag, Properties::MaterialLaw>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
+        using SolidEnergyLaw = GetPropType<TypeTag, Properties::SolidEnergyLaw>;
+         using EclMaterialLawManager = typename GetProp<TypeTag, Properties::MaterialLaw>::EclMaterialLawManager;
+    using EclThermalLawManager = typename GetProp<TypeTag, Properties::SolidEnergyLaw>::EclThermalLawManager;
+        using MaterialLawParams = typename EclMaterialLawManager::MaterialLawParams;
+        using SolidEnergyLawParams = typename EclThermalLawManager::SolidEnergyLawParams;
+        using ThermalConductionLawParams = typename EclThermalLawManager::ThermalConductionLawParams;
         enum { numPhases = FluidSystem::numPhases };
     public:
         EclProblemSimple(Simulator& simulator): EclProblem<TypeTag>(simulator){
@@ -29,6 +36,13 @@ namespace Opm{
                 Valgrind::CheckDefined(mobility);
             }
         };
+
+        // Scalar temperature(unsigned globalDofIdx, unsigned /*timeIdx*/) const
+        // {
+        //     // use the initial temperature of the DOF if temperature is not a primary
+        //     // variable
+        //     return this->initialFluidStates_[globalDofIdx].temperature(/*phaseIdx=*/0);
+        // }
     public:
         bool updateExplicitQuantities_(){
             OPM_TIMEBLOCK(updateExpliciteQuantitiesSimple);            
@@ -89,7 +103,10 @@ namespace Opm{
             }
             return any_changed;
         }
-        };
+        private:
+        friend EclProblem<TypeTag>;
+
+    };
 
 
 }

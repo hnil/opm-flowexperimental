@@ -27,6 +27,7 @@
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 #include <opm/flowexperimental/eclblackoilintensivequantities.hh>
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
 
 // initialization modifications to be able to inititialize with new material manager
@@ -44,16 +45,6 @@ namespace TTag {
         using InheritsFrom = std::tuple<EclFlowProblem>;
     };
 }
-    template<class TypeTag> 
-    struct SeparateSparseSourceTerms<TypeTag, TTag::EclFlowProblemTest> {
-        using type = bool;
-        static constexpr type value = true;
-    };
-    template<class TypeTag>
-    struct FluxDoubleSided<TypeTag, TTag::EclFlowProblemTest> {
-        using type = bool;
-        static constexpr type value = true;
-    };
     template<class TypeTag>
     struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
     
@@ -73,7 +64,9 @@ namespace TTag {
 
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
-    using type = EclBlackOilIntensiveQuantities<TypeTag>;
+        using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
+        //using type = EclBlackOilIntensiveQuantities<TypeTag>;
+        
     };
     
     
@@ -90,11 +83,34 @@ namespace TTag {
                                                 /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
         
     public:
-        using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;
+        using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits,2>;
         //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
         
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
+    template<class TypeTag>
+    struct Indices<TypeTag, TTag::EclFlowProblemTest>
+    {
+    private:
+        // it is unfortunately not possible to simply use 'TypeTag' here because this leads
+        // to cyclic definitions of some properties. if this happens the compiler error
+        // messages unfortunately are *really* confusing and not really helpful.
+        using BaseTypeTag = TTag::EclFlowProblem;
+        using FluidSystem = GetPropType<BaseTypeTag, Properties::FluidSystem>;
+        
+    public:
+        typedef BlackOilTwoPhaseIndices<getPropValue<TypeTag, Properties::EnableSolvent>(),
+                                        getPropValue<TypeTag, Properties::EnableExtbo>(),
+                                        getPropValue<TypeTag, Properties::EnablePolymer>(),
+                                        getPropValue<TypeTag, Properties::EnableEnergy>(),
+                                        getPropValue<TypeTag, Properties::EnableFoam>(),
+                                        getPropValue<TypeTag, Properties::EnableBrine>(),
+                                        /*PVOffset=*/0,
+                                        /*disabledCompIdx=*/FluidSystem::waterCompIdx,
+                                        getPropValue<TypeTag, Properties::EnableMICP>()> type;
+    };
+
+
 
 };    
    
