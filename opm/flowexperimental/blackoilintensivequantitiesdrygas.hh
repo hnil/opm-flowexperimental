@@ -479,7 +479,7 @@ public:
 
         {
             OPM_TIMEBLOCK_LOCAL(WaterPvt);
-            Evaluation salt= 0.0;
+            //Evaluation salt= 0.0;
             const Evaluation& p = fluidState_.pressure(waterPhaseIdx);
 //            Evaluation b = waterpvt.inverseFormationVolumeFactor(pvtRegionIdx, T, p, salt);
             //, Rsw, saltConcentration);

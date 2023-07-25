@@ -18,6 +18,7 @@ namespace Opm{
     public:
         BlackOilModelFv(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
         }
+
         void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx){
             OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantities);
 //            std::cout << "----------------------Update quantities-------------------\n"
@@ -30,19 +31,43 @@ namespace Opm{
                         
 #ifdef _OPENMP
 #pragma omp parallel for
-#endif                
+#endif
             for (unsigned dofIdx = 0; dofIdx < numGridDof; ++dofIdx) {
                 const auto& primaryVar = primaryVars[dofIdx];
                 auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
                 intquant.update(problem, primaryVar, dofIdx, timeIdx);
                 //intquant.update(problem,priVars, globalSpaceIdx, timeIdx, waterpvt, gaspvt, oilpvt);
             }
-            
+
             std::fill(this->intensiveQuantityCacheUpToDate_[timeIdx].begin(),
                       this->intensiveQuantityCacheUpToDate_[timeIdx].end(),
                       /*value=*/true);
-            
+
         }
+
+
+
+        template <class GridSubDomain>
+        void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx, const GridSubDomain& gridSubDomain) const{
+            OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantitiesSubdomain);
+//            std::cout << "----------------------Update quantitiesSubdomain-------------------\n";
+//                      << std::flush;
+//            Parent::invalidateAndUpdateIntensiveQuantities(timeIdx);
+//Parent::invalidateAndUpdateIntensiveQuantitiesSimple(*this,solution,/*timeIdx*/0);
+            const auto& primaryVars = this->solution(timeIdx);
+            const auto& problem = this->simulator_.problem();
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+            for (auto dofIdx : gridSubDomain.cells) {
+                //unsigned dofIdx = cell;
+                const auto& primaryVar = primaryVars[dofIdx];
+                auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
+                intquant.update(problem, primaryVar, dofIdx, timeIdx);
+                this->intensiveQuantityCacheUpToDate_[timeIdx][dofIdx]=true;
+            }
+        }
+
 
         const IntensiveQuantities& intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
             OPM_TIMEBLOCK_LOCAL(intensiveQuantities);
@@ -54,8 +79,8 @@ namespace Opm{
             }
             if(!intquant){
                 OPM_THROW(std::logic_error, "Intensive quantites need to be updated in code");
-            }    
-            return *intquant;    
+            }
+            return *intquant;
         }
 
     };
