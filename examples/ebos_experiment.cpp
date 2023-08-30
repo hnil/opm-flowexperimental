@@ -306,5 +306,6 @@ struct EclEnableAquifers<TypeTag, TTag::EclFlowProblemEbos> {
 int main(int argc, char** argv)
 {
     using TypeTag = Opm::Properties::TTag::EclFlowProblemEbos;
+    Opm::registerEclTimeSteppingParameters<TypeTag>();
     return Opm::start<TypeTag>(argc, argv);
 }

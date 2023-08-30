@@ -124,5 +124,6 @@ struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulato
 int main(int argc, char** argv)
 {
     using TypeTag = Opm::Properties::TTag::EclFlowProblemEbos;
+    Opm::registerEclTimeSteppingParameters<TypeTag>();
     return Opm::start<TypeTag>(argc, argv);
 }
