@@ -24,8 +24,8 @@
 
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
-#include "BlackOilModelFvNoCache.hpp"  
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
+#include "BlackOilModelFvNoCache.hpp"
 // the current code use eclnewtonmethod adding other conditions to proceed_ should do the trick for KA
 // adding linearshe sould be chaning the update_ function in the same class with condition that the error is reduced.
 // the trick is to be able to recalculate the residual from here.
@@ -55,7 +55,7 @@ struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
     using type = EbosProblem<TypeTag>;
 };
 
-    
+
 template<class TypeTag>
 struct ThreadsPerProcess<TypeTag, TTag::EclFlowProblemEbos> {
     static constexpr int value = 1;
@@ -71,7 +71,7 @@ struct EclNewtonSumTolerance<TypeTag, TTag::EclFlowProblemEbos> {
     using type = GetPropType<TypeTag, Scalar>;
     static constexpr type value = 1e-5;
 };
-    
+
 // the default for the allowed volumetric error for oil per second
 template<class TypeTag>
 struct NewtonTolerance<TypeTag, TTag::EclFlowProblemEbos> {
@@ -98,23 +98,23 @@ struct EclNewtonRelaxedTolerance<TypeTag, TTag::EclFlowProblemEbos> {
 
 template<class TypeTag>
 struct LocalResidual<TypeTag, TTag::EclFlowProblemEbos> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
-    
+
 template<class TypeTag>
 struct EnableDiffusion<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };
 
 template<class TypeTag>
-struct EnableDisgasInWater<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };    
+struct EnableDisgasInWater<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };
 
-//static constexpr bool has_disgas_in_water = getPropValue<TypeTag, Properties::EnableDisgasInWater>();    
-    
+//static constexpr bool has_disgas_in_water = getPropValue<TypeTag, Properties::EnableDisgasInWater>();
+
 template<class TypeTag>
-struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulator<TypeTag>; };    
+struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulator<TypeTag>; };
 // // Set the problem class
 // template<class TypeTag>
 // struct Problem<TypeTag, TTag::EbosTypeTag> {
 //     using type = EbosProblem<TypeTag>;
 // };
-    
+
 // template<class TypeTag>
 // struct EclEnableAquifers<TypeTag, TTag::EclFlowProblemTest> {
 //     static constexpr bool value = false;

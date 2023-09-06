@@ -91,7 +91,7 @@ private:
     using GasWaterEffectiveTwoPhaseLaw = PiecewiseLinearTwoPhaseMaterial<GasWaterTraits>;
 
 
-    
+
     using GasOilEffectiveTwoPhaseParams = typename GasOilEffectiveTwoPhaseLaw::Params;
     using OilWaterEffectiveTwoPhaseParams = typename OilWaterEffectiveTwoPhaseLaw::Params;
     using GasWaterEffectiveTwoPhaseParams = typename GasWaterEffectiveTwoPhaseLaw::Params;
@@ -111,7 +111,7 @@ private:
     using GasOilTwoPhaseHystParams = typename GasOilTwoPhaseLaw::Params;
     using OilWaterTwoPhaseHystParams = typename OilWaterTwoPhaseLaw::Params;
     using GasWaterTwoPhaseHystParams = typename GasWaterTwoPhaseLaw::Params;
-    
+
     template <int numP,class Dummy>
     struct SelectMaterialLaw
     {
@@ -163,9 +163,10 @@ public:
      * that the capillary pressure given depends on the particuars of how the simulator
      * calculates its initial condition.
      */
-    Scalar applySwatinit(unsigned elemIdx,
-                         Scalar pcow,
-                         Scalar Sw);
+    std::pair<Scalar, bool>
+    applySwatinit(unsigned elemIdx,
+                  Scalar pcow,
+                  Scalar Sw);
 
     bool enableEndPointScaling() const
     { return enableEndPointScaling_; }

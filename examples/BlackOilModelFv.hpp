@@ -20,7 +20,7 @@ namespace Opm{
         }
 
         void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx){
-            OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantities);
+            OPM_TIMEBLOCK(updateIntensiveQuantities);
 //            std::cout << "----------------------Update quantities-------------------\n"
 //                      << std::flush;
 //            Parent::invalidateAndUpdateIntensiveQuantities(timeIdx);
@@ -28,7 +28,7 @@ namespace Opm{
             const auto& primaryVars = this->solution(timeIdx);
             const auto& problem = this->simulator_.problem();
             size_t numGridDof = primaryVars.size();
-                        
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
