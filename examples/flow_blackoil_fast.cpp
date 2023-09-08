@@ -65,15 +65,18 @@ namespace TTag {
     template<class TypeTag>
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
         using type = BlackOilModelFv<TypeTag>;
+        //using type = FIBlackOilModel<TypeTag>;
     };
     template<class TypeTag>
     struct Problem<TypeTag, TTag::EclFlowProblemTest> {
         using type = EclProblemSimple<TypeTag>;
+        //using type = EclProblem<TypeTag>;
     };
 
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
-    using type = EclBlackOilIntensiveQuantities<TypeTag>;
+        using type = EclBlackOilIntensiveQuantities<TypeTag>;
+        //using type = BlackOilIntensiveQuantities<TypeTag>;
     };
 
 

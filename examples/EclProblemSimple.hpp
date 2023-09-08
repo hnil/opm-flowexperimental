@@ -45,7 +45,7 @@ namespace Opm{
         // }
     public:
         bool updateExplicitQuantities_(){
-            OPM_TIMEBLOCK(updateExpliciteQuantitiesSimple);            
+            OPM_TIMEBLOCK(updateExpliciteQuantitiesSimple);
             const auto& primaryVars = this->model().solution(/*timeIdx*/0);
             const auto& problem = this->simulator().problem();
             const auto& model = this->simulator().model();
@@ -68,9 +68,9 @@ namespace Opm{
                     const bool invalidateFromMinPressure = this->updateMinPressure_(dofIdx,iq);
                     changed = changed || invalidateFromMinPressure;
                 }
-                
+
                 // update hysteresis and max oil saturation used in vappars
-                if (!this->materialLawManager()->enableHysteresis()){
+                if (this->materialLawManager()->enableHysteresis()){
                     //need bools in opm-material
                     const bool invalidateFromHyst = this->materialLawManager()->updateHysteresis(iq.fluidState(),dofIdx);
                     changed = changed || invalidateFromHyst;
@@ -80,14 +80,14 @@ namespace Opm{
                     const bool invalidateFromMaxOilSat = this->updateMaxOilSaturation_(dofIdx,iq);
                     changed = changed || invalidateFromMaxOilSat;
                 }
-                
+
                 // the derivatives may have change
                 any_changed = changed || any_changed;
                 if(changed){
                     OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantityHyst);
                     const auto& primaryVar = primaryVars[dofIdx];
                     //auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
-                    // to get it working with and without cached normally &iq = iq 
+                    // to get it working with and without cached normally &iq = iq
                     // auto* iql = const_cast<IntensiveQuantities&>(model.cachedIntensiveQuantities(dofIdx, /*timeIdx=*/ 0));
                     // if(iql){
                     //     iql->update(problem, primaryVar, dofIdx,/*timeIdx*/0);
@@ -95,7 +95,7 @@ namespace Opm{
                     auto& iql = const_cast<IntensiveQuantities&>(iq);
                     iql.update(problem, primaryVar, dofIdx,/*timeIdx*/0);
                     model.updateCachedIntensiveQuantities(iql,dofIdx,/*timeIdx*/0);
-    
+
                 }
                 if constexpr (getPropValue<TypeTag, Properties::EnablePolymer>()){
                     updateMaxPolymerAdsorption_(dofIdx,iq);

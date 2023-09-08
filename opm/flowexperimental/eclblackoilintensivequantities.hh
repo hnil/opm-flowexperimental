@@ -299,7 +299,8 @@ public:
             // MaterialLaw::DefaultMaterial::relativePermeabilities(mobility_, materialParams, fluidState_);
             const auto& materialParams = problem.materialLawParams(globalSpaceIdx);
             MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);
-            problem.updateRelperms(mobility_, dirMob_, fluidState_, globalSpaceIdx);
+            MaterialLaw::relativePermeabilities(mobility_, materialParams, fluidState_);
+            //problem.updateRelperms(mobility_, dirMob_, fluidState_, globalSpaceIdx);
         }
         // oil is the reference phase for pressure
         if (priVars.primaryVarsMeaningPressure() == PrimaryVariables::PressureMeaning::Pg) {
@@ -307,13 +308,13 @@ public:
             for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx)
                 if (FluidSystem::phaseIsActive(phaseIdx))
                     fluidState_.setPressure(phaseIdx, pg + (pC[phaseIdx] - pC[gasPhaseIdx]));
-        // } else if (priVars.primaryVarsMeaningPressure() == PrimaryVariables::PressureMeaning::Pw) {
-        //     const Evaluation& pw = priVars.makeEvaluation(Indices::pressureSwitchIdx, timeIdx);
-        //    for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx)
-        //         if (FluidSystem::phaseIsActive(phaseIdx))
-        //             fluidState_.setPressure(phaseIdx, pw + (pC[phaseIdx] - pC[waterPhaseIdx]));
+        } else if (priVars.primaryVarsMeaningPressure() == PrimaryVariables::PressureMeaning::Pw) {
+             const Evaluation& pw = priVars.makeEvaluation(Indices::pressureSwitchIdx, timeIdx);
+            for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx)
+                 if (FluidSystem::phaseIsActive(phaseIdx))
+                     fluidState_.setPressure(phaseIdx, pw + (pC[phaseIdx] - pC[waterPhaseIdx]));
         } else {
-            //assert(FluidSystem::phaseIsActive(oilPhaseIdx));
+            assert(FluidSystem::phaseIsActive(oilPhaseIdx));
             const Evaluation& po = priVars.makeEvaluation(Indices::pressureSwitchIdx, timeIdx);
             for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx)
                 if (FluidSystem::phaseIsActive(phaseIdx))
@@ -485,14 +486,46 @@ public:
             fluidState_.setInvB(waterPhaseIdx, b);
             viscosity[waterPhaseIdx] = mu;
         }
-
-
+       if constexpr(false){
+       typename FluidSystem::template ParameterCache<Evaluation> paramCache;
+       paramCache.setRegionIndex(pvtRegionIdx);
+        if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
+            paramCache.setMaxOilSat(SoMax);
+        }
+        paramCache.updateAll(fluidState_);
+        int nmobilities = 1;
+        std::vector<std::array<Evaluation,numPhases>*> mobilities = {&mobility_};
+        if (dirMob_) {
+            for (int i=0; i<3; i++) {
+                nmobilities += 1;
+                mobilities.push_back(&(dirMob_->getArray(i)));
+            }
+        }
         for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx) {
             if (!FluidSystem::phaseIsActive(phaseIdx))
                 continue;
-            mobility_[phaseIdx] /= viscosity[phaseIdx];
+            //const auto& b = FluidSystem::inverseFormationVolumeFactor(fluidState_, phaseIdx, pvtRegionIdx);
+            //fluidState_.setInvB(phaseIdx, b);
+            const auto& mu = FluidSystem::viscosity(fluidState_, paramCache, phaseIdx);
+            for (int i = 0; i<nmobilities; i++) {
+                if (enableExtbo && phaseIdx == oilPhaseIdx) {
+                    (*mobilities[i])[phaseIdx] /= asImp_().oilViscosity();
+                }
+                else if (enableExtbo && phaseIdx == gasPhaseIdx) {
+                    (*mobilities[i])[phaseIdx] /= asImp_().gasViscosity();
+                }
+                else {
+                    (*mobilities[i])[phaseIdx] /= mu;
+                }
+            }
         }
-
+       }else{
+           for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx) {
+               if (!FluidSystem::phaseIsActive(phaseIdx))
+                continue;
+               mobility_[phaseIdx] /= viscosity[phaseIdx];
+           }
+       }
 
         }
 
@@ -577,6 +610,18 @@ public:
         // }
 
         rockCompTransMultiplier_ = problem.template rockCompTransMultiplier<Evaluation>(*this, globalSpaceIdx);
+
+        static_assert(!enableSolvent);
+        static_assert(!enableExtbo);
+        static_assert(!enablePolymer);
+        static_assert(!enableFoam);
+        static_assert(!enableBrine);
+        static_assert(!enableEvaporation);
+        static_assert(!enableSaltPrecipitation);
+            //static_assert(!enableTemperature)
+            //static_assert(!enableEnergy)
+        static_assert(!enableDiffusion);
+        static_assert(!enableMICP);
 
         // asImp_().solventPvtUpdate_(elemCtx, dofIdx, timeIdx);
         // asImp_().zPvtUpdate_();

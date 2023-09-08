@@ -8,6 +8,10 @@ namespace Opm{
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
         using Indices = GetPropType<TypeTag, Properties::Indices>;
+        using GridView = GetPropType<TypeTag, Properties::GridView>;
+        using Element = typename GridView::template Codim<0>::Entity;
+        using ElementIterator = typename GridView::template Codim<0>::Iterator;
+        using ElementMapper = Dune::MultipleCodimMultipleGeomTypeMapper<GridView>;
         static constexpr bool waterEnabled = Indices::waterEnabled;
         static constexpr bool gasEnabled = Indices::gasEnabled;
         static constexpr bool oilEnabled = Indices::oilEnabled;
@@ -45,7 +49,32 @@ namespace Opm{
 
         }
 
-
+        void invalidateAndUpdateIntensiveQuantitiesOverlap(unsigned timeIdx) const
+        {
+            // loop over all elements
+            ThreadedEntityIterator<GridView, /*codim=*/0> threadedElemIt(this->gridView_);
+            const auto& primaryVars = this->solution(timeIdx);
+            const auto& problem = this->simulator_.problem();
+            const auto& mapper = this->simulator_.model().dofMapper();
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
+            //ElementContext elemCtx(this->simulator_);
+            auto elemIt = threadedElemIt.beginParallel();
+            for (; !threadedElemIt.isFinished(elemIt); elemIt = threadedElemIt.increment()) {
+                if (elemIt->partitionType() != Dune::OverlapEntity) {
+                    continue;
+                }
+                const Element& elem = *elemIt;
+                const auto& dofIdx = mapper.index(elem);
+                const auto& primaryVar = primaryVars[dofIdx];
+                auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
+                intquant.update(problem, primaryVar, dofIdx, timeIdx);
+                this->intensiveQuantityCacheUpToDate_[timeIdx][dofIdx]=true;
+            }
+        }
+        }
 
         template <class GridSubDomain>
         void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx, const GridSubDomain& gridSubDomain) const{
