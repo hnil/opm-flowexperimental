@@ -28,6 +28,7 @@
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 #include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+#include <opm/material/fluidmatrixinteractions/EclMaterialLawManager.hpp>
 
 // initialization modifications to be able to inititialize with new material manager
 #include <ebos/equil/equilibrationhelpers.hh>
