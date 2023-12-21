@@ -363,13 +363,13 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 }
 
 template<class TraitsT,int myPhases>
-typename TraitsT::Scalar EclMaterialLawManagerTable<TraitsT,myPhases>::
+std::pair<typename TraitsT::Scalar, bool> EclMaterialLawManagerTable<TraitsT, myPhases>::
 applySwatinit(unsigned elemIdx,
               Scalar pcow,
               Scalar Sw)
 {
     auto& elemScaledEpsInfo = oilWaterScaledEpsInfoDrainage_[elemIdx];
-
+    bool newSwatInit = false;
     // TODO: Mixed wettability systems - see ecl kw OPTIONS switch 74
 
     if (pcow < 0.0)
@@ -411,7 +411,7 @@ applySwatinit(unsigned elemIdx,
         }
     }
 
-    return Sw;
+    return {Sw, newSwatInit};
 }
 
 template<class TraitsT,int myPhases>
@@ -438,8 +438,8 @@ connectionMaterialLawParams(unsigned satRegionIdx, unsigned elemIdx) const
 //                realParams.gasOilParams().imbibitionParams().setUnscaledPoints(gasOilUnscaledPointsVector_[impRegionIdx]);
 //                realParams.gasOilParams().imbibitionParams().setEffectiveLawParams(gasOilEffectiveParamVector_[impRegionIdx]);
 //            }
-    
-        
+
+
     return mlp;
 }
 
@@ -529,7 +529,7 @@ oilWaterScaledEpsPointsDrainage(unsigned elemIdx)
 {
     //auto& materialParams = materialLawParams_[elemIdx];
     auto& realParams = materialLawParams_[elemIdx];
-    
+
     //auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Default>();
     return realParams.oilWaterParams().drainageParams().scaledPoints();
 }
@@ -560,12 +560,12 @@ readGlobalThreePhaseOptions_(const Runspec& runspec)
     bool oilEnabled = runspec.phases().active(Phase::OIL);
     bool waterEnabled = runspec.phases().active(Phase::WATER);
 
-    
+
     int numEnabled =
         (gasEnabled?1:0)
         + (oilEnabled?1:0)
         + (waterEnabled?1:0);
-    
+
     if (numEnabled == 0) {
         throw std::runtime_error("At least one fluid phase must be enabled. (Is: "+std::to_string(numEnabled)+")");
     } else if (numEnabled == 1) {
@@ -1060,7 +1060,7 @@ initThreePhaseParams_(const EclipseState& /* eclState */,
     realParams.setOilWaterParams(oilWaterParams);
     realParams.setSwl(epsInfo.Swl);
     realParams.finalize();
-       
+
 }
 
 template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2>,3>;

@@ -45,11 +45,16 @@ namespace TTag {
         using InheritsFrom = std::tuple<EclFlowProblem>;
     };
 }
-    template<class TypeTag>
-    struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
+    // template<class TypeTag>
+    // struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
 
     template<class TypeTag>
     struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
+
+    template<class TypeTag>
+    struct EnableEnergy<TypeTag, TTag::EclFlowProblemTest> {
+        static constexpr bool value = true;
+    };
 
     template<class TypeTag>
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
@@ -65,7 +70,6 @@ namespace TTag {
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
         using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
-        //using type = EclBlackOilIntensiveQuantities<TypeTag>;
         //using type = EclBlackOilIntensiveQuantities<TypeTag>;
 
     };
