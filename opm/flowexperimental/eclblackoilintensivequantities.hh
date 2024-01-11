@@ -293,13 +293,14 @@ public:
         std::array<Evaluation, numPhases> pC = {0, 0, 0};
         {
             OPM_TIMEBLOCK_LOCAL(RelpermEvaluation);
-            // //const auto& materialParams = problem.materialLawParams(0)
+            //const auto& materialParams = problem.materialLawParams(0);
             //const auto& materialParams = problem.materialLawParams(globalSpaceIdx).template getRealParams<Opm::EclMultiplexerApproach::Default>();
             // MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState_);
             // MaterialLaw::DefaultMaterial::relativePermeabilities(mobility_, materialParams, fluidState_);
             const auto& materialParams = problem.materialLawParams(globalSpaceIdx);
             MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);
             MaterialLaw::relativePermeabilities(mobility_, materialParams, fluidState_);
+            //MaterialLaw::relativecapillaryPressuresAndRelativePermeabilities(pC, mobility_, materialParams, fluidState_);
             //problem.updateRelperms(mobility_, dirMob_, fluidState_, globalSpaceIdx);
         }
         // oil is the reference phase for pressure
@@ -377,7 +378,7 @@ public:
             const Evaluation& p = fluidState_.pressure(oilPhaseIdx);
              //SegmentIndex segIdx = oilpvt.inverseSaturatedOilBTable()[pvtRegionIdx].findSegmentIndex(p,/*extrapolate=*/true);
             SegmentIndex segIdx = segIdx_so;
-            Evaluation b  =oilpvt.inverseSaturatedOilBTable()[pvtRegionIdx].eval(p, segIdx);
+            Evaluation b  = oilpvt.inverseSaturatedOilBTable()[pvtRegionIdx].eval(p, segIdx);
             Evaluation invBMu = oilpvt.inverseSaturatedOilBMuTable()[pvtRegionIdx].eval(p,segIdx);
             Evaluation mu = b/invBMu;
             fluidState_.setInvB(oilPhaseIdx, b);

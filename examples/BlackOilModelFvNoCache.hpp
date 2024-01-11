@@ -1,15 +1,15 @@
 #ifndef BLACK_OIL_MODEL_FV_NOCACHE_HPP
 #define BLACK_OIL_MODEL_FV_NOCACHE_HPP
 #include <ebos/FIBlackOilModel.hpp>
-#include "BlackOilModelFv.hpp"
+#include "BlackOilModelFvFast.hpp"
 namespace Opm{
     template<typename TypeTag>
-    class BlackOilModelFvNoCache: public BlackOilModelFv<TypeTag>{
-        using Parent = BlackOilModelFv<TypeTag>;
+    class BlackOilModelFvNoCache: public BlackOilModelFvFast<TypeTag>{
+        using Parent = BlackOilModelFvFast<TypeTag>;
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
     public:
-        BlackOilModelFvNoCache(Simulator& simulator): BlackOilModelFv<TypeTag>(simulator){
+        BlackOilModelFvNoCache(Simulator& simulator): BlackOilModelFvFast<TypeTag>(simulator){
         }
 
         IntensiveQuantities intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{

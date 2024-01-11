@@ -22,11 +22,11 @@
 #include "tracy/TracyC.h"
 #define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
 #define OPM_TIMEBLOCK_LOCAL(blockname);// ZoneNamedN(blockname, #blockname, true);
-#endif 
+#endif
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManager.hpp>
 
@@ -35,8 +35,8 @@
 #include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
 #include <ebos/equil/initstateequil.hh>
 #include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
-#include "EclProblemSimple.hpp"
-#include "BlackOilModelFv.hpp"
+#include "EclProblemSimpleFast.hpp"
+#include "BlackOilModelFvFast.hpp"
 
 
 
@@ -49,15 +49,15 @@ namespace TTag {
 }
     template<class TypeTag>
     struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
-    
+
     template<class TypeTag>
     struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
-    
+
     template<class TypeTag>
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
     template<class TypeTag>
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
-        using type = BlackOilModelFv<TypeTag>;
+        using type = BlackOilModelFvFast<TypeTag>;
     };
 
     template<class TypeTag>
@@ -66,7 +66,7 @@ namespace TTag {
     };
     template<class TypeTag>
     struct Problem<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclProblemSimple<TypeTag>;
+        using type = EclProblemSimpleFast<TypeTag>;
     };
     template<class TypeTag>
     struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
@@ -74,21 +74,21 @@ namespace TTag {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-        
+
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
                                                 /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
-        
+
     public:
         using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;
         //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
-        
+
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
-    
-};    
-   
+
+};
+
 }
 
 int main(int argc, char** argv)

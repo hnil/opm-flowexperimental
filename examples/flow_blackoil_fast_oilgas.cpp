@@ -35,8 +35,8 @@
 #include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
 #include <ebos/equil/initstateequil.hh>
 #include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
-#include "BlackOilModelFv.hpp"
-#include "EclProblemSimple.hpp"
+#include "BlackOilModelFvFast.hpp"
+#include "EclProblemSimpleFast.hpp"
 
 namespace Opm {
 namespace Properties {
@@ -55,11 +55,11 @@ namespace TTag {
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
     template<class TypeTag>
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
-        using type = BlackOilModelFv<TypeTag>;
+        using type = BlackOilModelFvFast<TypeTag>;
     };
     template<class TypeTag>
     struct Problem<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclProblemSimple<TypeTag>;
+        using type = EclProblemSimpleFast<TypeTag>;
     };
 
     template<class TypeTag>

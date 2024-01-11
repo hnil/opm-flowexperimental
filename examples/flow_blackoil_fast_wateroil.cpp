@@ -35,8 +35,8 @@
 #include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
 #include <ebos/equil/initstateequil.hh>
 #include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
-#include "BlackOilModelFv.hpp"
-#include "EclProblemSimple.hpp"
+#include "BlackOilModelFvFast.hpp"
+#include "EclProblemSimpleFast.hpp"
 
 namespace Opm {
 namespace Properties {
@@ -47,7 +47,7 @@ namespace TTag {
 }
     template<class TypeTag>
     struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
-    
+
     template<class TypeTag>
     struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
 
@@ -55,36 +55,36 @@ namespace TTag {
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
     template<class TypeTag>
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
-        using type = BlackOilModelFv<TypeTag>;
+        using type = BlackOilModelFvFast<TypeTag>;
     };
     template<class TypeTag>
     struct Problem<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclProblemSimple<TypeTag>;
+        using type = EclProblemSimpleFast<TypeTag>;
     };
 
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
         //using type = EclBlackOilIntensiveQuantities<TypeTag>;
-    using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;    
+    using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
     };
-    
-    
+
+
     template<class TypeTag>
     struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
     {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-        
+
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
                                                 /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
-        
+
     public:
         using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits,2>;
         //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
-        
+
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
     template<class TypeTag>
@@ -96,7 +96,7 @@ namespace TTag {
         // messages unfortunately are *really* confusing and not really helpful.
         using BaseTypeTag = TTag::EclFlowProblem;
         using FluidSystem = GetPropType<BaseTypeTag, Properties::FluidSystem>;
-        
+
     public:
         typedef BlackOilTwoPhaseIndices<getPropValue<TypeTag, Properties::EnableSolvent>(),
                                         getPropValue<TypeTag, Properties::EnableExtbo>(),
@@ -111,8 +111,8 @@ namespace TTag {
 
 
 
-};    
-   
+};
+
 }
 
 int main(int argc, char** argv)

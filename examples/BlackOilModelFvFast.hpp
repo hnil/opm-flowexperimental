@@ -1,9 +1,9 @@
-#ifndef BLACK_OIL_MODEL_FV_HPP
-#define BLACK_OIL_MODEL_FV_HPP
+#ifndef BLACK_OIL_MODEL_FV_FAST_HPP
+#define BLACK_OIL_MODEL_FV_FAST_HPP
 #include <ebos/FIBlackOilModel.hpp>
 namespace Opm{
     template<typename TypeTag>
-    class BlackOilModelFv: public BlackOilModel<TypeTag>{
+    class BlackOilModelFvFast: public BlackOilModel<TypeTag>{
         using Parent = BlackOilModel<TypeTag>;
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
@@ -20,7 +20,7 @@ namespace Opm{
 
 
     public:
-        BlackOilModelFv(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
+        BlackOilModelFvFast(Simulator& simulator): BlackOilModel<TypeTag>(simulator){
         }
 
         void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx){
@@ -96,7 +96,50 @@ namespace Opm{
                 this->intensiveQuantityCacheUpToDate_[timeIdx][dofIdx]=true;
             }
         }
+    template <class GridSubDomain>
+    void invalidateAndUpdateIntensiveQuantitiesGrid(unsigned timeIdx, const GridSubDomain& gridSubDomain) const
+    {
+        using ElementContext = GetPropType<TypeTag, Properties::ElementContext>;
+        using ThreadManager = GetPropType<TypeTag, Properties::ThreadManager>;
+        //using GridView = GetPropType<TypeTag, Properties::GridView>;
+        using Element = typename GridView::template Codim<0>::Entity;
+        using ElementIterator = typename GridView::template Codim<0>::Iterator;
+        // loop over all elements...
+        using GridViewType = decltype(gridSubDomain.view);
+        const auto& primaryVars = this->solution(timeIdx);
+        const auto& problem = this->simulator_.problem();
+        const auto& mapper = this->simulator_.model().dofMapper();
+        ThreadedEntityIterator<GridViewType, /*codim=*/0> threadedElemIt(gridSubDomain.view);
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        {
 
+            ElementContext elemCtx(this->simulator_);
+            auto elemIt = threadedElemIt.beginParallel();
+            for (; !threadedElemIt.isFinished(elemIt); elemIt = threadedElemIt.increment()) {
+                if (elemIt->partitionType() != Dune::InteriorEntity) {
+                    continue;
+                }
+                const Element& elem = *elemIt;
+                const auto& dofIdx = mapper.index(elem);
+                const auto& primaryVar = primaryVars[dofIdx];
+                auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
+                intquant.update(problem, primaryVar, dofIdx, timeIdx);
+                this->intensiveQuantityCacheUpToDate_[timeIdx][dofIdx]=true;
+
+                // elemCtx.updatePrimaryStencil(elem);
+                // // Mark cache for this element as invalid.
+                // const std::size_t numPrimaryDof = elemCtx.numPrimaryDof(timeIdx);
+                // for (unsigned dofIdx = 0; dofIdx < numPrimaryDof; ++dofIdx) {
+                //     const unsigned globalIndex = elemCtx.globalSpaceIndex(dofIdx, timeIdx);
+                //     this->setIntensiveQuantitiesCacheEntryValidity(globalIndex, timeIdx, false);
+                // }
+                // // Update for this element.
+                // elemCtx.updatePrimaryIntensiveQuantities(/*timeIdx=*/0);
+            }
+        }
+    }
 
         const IntensiveQuantities& intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
             OPM_TIMEBLOCK_LOCAL(intensiveQuantities);

@@ -28,7 +28,7 @@
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
 
 // initialization modifications to be able to inititialize with new material manager
@@ -36,7 +36,7 @@
 #include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
 #include <ebos/equil/initstateequil.hh>
 #include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
-#include "EclProblemSimple.hpp"
+#include "EclProblemSimpleFast.hpp"
 #include "BlackOilModelFvNoCache.hpp"
 
 
@@ -50,10 +50,10 @@ namespace TTag {
 }
     template<class TypeTag>
     struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
-       
+
     template<class TypeTag>
     struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
-    
+
     template<class TypeTag>
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
     template<class TypeTag>
@@ -67,7 +67,7 @@ namespace TTag {
     };
     template<class TypeTag>
     struct Problem<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclProblemSimple<TypeTag>;
+        using type = EclProblemSimpleFast<TypeTag>;
     };
     template<class TypeTag>
     struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
@@ -75,21 +75,21 @@ namespace TTag {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-        
+
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
                                                 /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
-        
+
     public:
         using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;
         //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
-        
+
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
-    
-};    
-   
+
+};
+
 }
 
 int main(int argc, char** argv)

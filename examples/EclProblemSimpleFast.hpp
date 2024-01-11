@@ -1,8 +1,8 @@
-#ifndef ECL_PROBLEM_OIL_SIMPLE_HPP
-#define ECL_PROBLEM_OIL_SIMPLE_HPP
+#ifndef ECL_PROBLEM_OIL_SIMPLE_FAST_HPP
+#define ECL_PROBLEM_OIL_SIMPLE_FAST_HPP
 namespace Opm{
     template<typename TypeTag>
-    class EclProblemSimple: public EclProblem<TypeTag>{
+    class EclProblemSimpleFast: public EclProblem<TypeTag>{
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
@@ -18,7 +18,7 @@ namespace Opm{
         using ThermalConductionLawParams = typename EclThermalLawManager::ThermalConductionLawParams;
         enum { numPhases = FluidSystem::numPhases };
     public:
-        EclProblemSimple(Simulator& simulator): EclProblem<TypeTag>(simulator){
+        EclProblemSimpleFast(Simulator& simulator): EclProblem<TypeTag>(simulator){
         }
         template <class FluidState>
         void updateRelperms(

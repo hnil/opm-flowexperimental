@@ -29,7 +29,7 @@
 #include <opm/flowexperimental/blackoilintensivequantitiesdrygas.hh>
 #include <opm/flowexperimental/blackoilintensivequantitiesdrygas.hh>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
-#include "BlackOilModelFv.hpp"
+#include "BlackOilModelFvFast.hpp"
 
 namespace Opm {
 namespace Properties {
@@ -40,7 +40,7 @@ namespace TTag {
 }
     template<class TypeTag>
     struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
-    
+
     template<class TypeTag>
     struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
 
@@ -48,7 +48,7 @@ namespace TTag {
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
     template<class TypeTag>
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
-        using type = BlackOilModelFv<TypeTag>;
+        using type = BlackOilModelFvFast<TypeTag>;
     };
 
     template<class TypeTag>
@@ -61,20 +61,20 @@ namespace TTag {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-        
+
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
                                                 /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
-        
+
     public:
         using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
-        
+
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
 
-};    
-   
+};
+
 }
 
 int main(int argc, char** argv)
