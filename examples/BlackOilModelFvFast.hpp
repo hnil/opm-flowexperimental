@@ -4,10 +4,14 @@
 namespace Opm{
     template<typename TypeTag>
     class BlackOilModelFvFast: public BlackOilModel<TypeTag>{
+
+
         using Parent = BlackOilModel<TypeTag>;
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
+    public:
         using Indices = GetPropType<TypeTag, Properties::Indices>;
+    private:
         using GridView = GetPropType<TypeTag, Properties::GridView>;
         using Element = typename GridView::template Codim<0>::Entity;
         using ElementIterator = typename GridView::template Codim<0>::Iterator;

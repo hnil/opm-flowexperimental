@@ -64,7 +64,7 @@ namespace Opm{
                     const bool invalidateFromMaxWaterSat = this->updateMaxWaterSaturation_(dofIdx,iq);
                     changed = changed || invalidateFromMaxWaterSat;
                 }
-                if (!this->minOilPressure_.empty()){
+                if (!this->minRefPressure_.empty()){
                     const bool invalidateFromMinPressure = this->updateMinPressure_(dofIdx,iq);
                     changed = changed || invalidateFromMinPressure;
                 }

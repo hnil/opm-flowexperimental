@@ -89,7 +89,8 @@ class BlackOilIntensiveQuantitiesDryGas
     enum { enablePolymer = getPropValue<TypeTag, Properties::EnablePolymer>() };
     enum { enableFoam = getPropValue<TypeTag, Properties::EnableFoam>() };
     enum { enableBrine = getPropValue<TypeTag, Properties::EnableBrine>() };
-    enum { enableEvaporation = getPropValue<TypeTag, Properties::EnableEvaporation>() };
+    //enum { enableEvaporation = getPropValue<TypeTag, Properties::EnableEvaporation>() };
+    enum { enableVapwat = getPropValue<TypeTag, Properties::EnableVapwat>() };
     enum { enableSaltPrecipitation = getPropValue<TypeTag, Properties::EnableSaltPrecipitation>() };
     enum { enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>() };
     enum { enableEnergy = getPropValue<TypeTag, Properties::EnableEnergy>() };
@@ -125,7 +126,7 @@ public:
                                           enableTemperature,
                                           enableEnergy,
                                           compositionSwitchEnabled,
-                                          enableEvaporation,
+                                          enableVapwat,
                                           enableBrine,
                                           enableSaltPrecipitation,
                                           false,
@@ -135,7 +136,7 @@ public:
                                                 enableTemperature,
                                                 enableEnergy,
                                                 compositionSwitchEnabled,
-                                                enableEvaporation,
+                                                enableVapwat,
                                                 enableBrine,
                                                 enableSaltPrecipitation,
                                                 false,
@@ -148,7 +149,7 @@ public:
             fluidState_.setRs(0.0);
             fluidState_.setRv(0.0);
         }
-        if (enableEvaporation) {
+        if (enableVapwat) {
             fluidState_.setRvw(0.0);
         }
     }

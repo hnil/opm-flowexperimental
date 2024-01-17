@@ -60,7 +60,7 @@ class SgofTable;
 class SlgofTable;
 class Sof2Table;
 class Sof3Table;
-
+class FieldPropsManager;
 /*!
  * \ingroup fluidmatrixinteractions
  *
@@ -155,6 +155,35 @@ public:
 
     void initParamsForElements(const EclipseState& eclState, size_t numCompressedElems);
 
+    void initParamsForElements(const EclipseState& eclState,
+                               size_t numCompressedElems,
+                               const std::function<std::vector<int>(const FieldPropsManager&, const std::string&,
+                                                                    const unsigned int, bool)>& /*fieldPropIntOnLeafAssigner*/,
+                               const std::function<unsigned(unsigned)>& /*lookupIdxOnLevelZeroAssigner*/)
+    {
+        this->initParamsForElements(eclState, numCompressedElems);
+    }
+
+    std::pair<Scalar, bool>
+    applySwatinit(unsigned elemIdx,
+                  Scalar pcow,
+                  Scalar Sw);
+
+
+    void applyRestartSwatInit(const unsigned elemIdx, const Scalar maxPcow){
+            // Maximum capillary pressure adjusted from SWATINIT data.
+
+    auto& elemScaledEpsInfo =
+        this->oilWaterScaledEpsInfoDrainage_[elemIdx];
+
+    elemScaledEpsInfo.maxPcow = maxPcow;
+
+    this->oilWaterScaledEpsPointsDrainage(elemIdx)
+        .init(elemScaledEpsInfo,
+              *this->oilWaterEclEpsConfig_,
+              EclTwoPhaseSystemType::OilWater);
+    }
+
     /*!
      * \brief Modify the initial condition according to the SWATINIT keyword.
      *
@@ -163,10 +192,6 @@ public:
      * that the capillary pressure given depends on the particuars of how the simulator
      * calculates its initial condition.
      */
-    std::pair<Scalar, bool>
-    applySwatinit(unsigned elemIdx,
-                  Scalar pcow,
-                  Scalar Sw);
 
     bool enableEndPointScaling() const
     { return enableEndPointScaling_; }

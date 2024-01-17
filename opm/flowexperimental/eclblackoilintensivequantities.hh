@@ -88,8 +88,9 @@ class EclBlackOilIntensiveQuantities
     enum { enableExtbo = getPropValue<TypeTag, Properties::EnableExtbo>() };
     enum { enablePolymer = getPropValue<TypeTag, Properties::EnablePolymer>() };
     enum { enableFoam = getPropValue<TypeTag, Properties::EnableFoam>() };
+    enum { enableVapwat = getPropValue<TypeTag, Properties::EnableVapwat>() };
     enum { enableBrine = getPropValue<TypeTag, Properties::EnableBrine>() };
-    enum { enableEvaporation = getPropValue<TypeTag, Properties::EnableEvaporation>() };
+    //enum { enableEvaporation = getPropValue<TypeTag, Properties::EnableEvaporation>() };
     enum { enableSaltPrecipitation = getPropValue<TypeTag, Properties::EnableSaltPrecipitation>() };
     enum { enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>() };
     enum { enableEnergy = getPropValue<TypeTag, Properties::EnableEnergy>() };
@@ -125,7 +126,7 @@ public:
                                           enableTemperature,
                                           enableEnergy,
                                           compositionSwitchEnabled,
-                                          enableEvaporation,
+                                          enableVapwat,
                                           enableBrine,
                                           enableSaltPrecipitation,
                                           false,
@@ -135,7 +136,7 @@ public:
                                                 enableTemperature,
                                                 enableEnergy,
                                                 compositionSwitchEnabled,
-                                                enableEvaporation,
+                                                enableVapwat,
                                                 enableBrine,
                                                 enableSaltPrecipitation,
                                                 false,
@@ -148,7 +149,7 @@ public:
             fluidState_.setRs(0.0);
             fluidState_.setRv(0.0);
         }
-        if (enableEvaporation) {
+        if (enableVapwat) {
             fluidState_.setRvw(0.0);
         }
     }
@@ -617,7 +618,7 @@ public:
         static_assert(!enablePolymer);
         static_assert(!enableFoam);
         static_assert(!enableBrine);
-        static_assert(!enableEvaporation);
+        static_assert(!enableVapwat);
         static_assert(!enableSaltPrecipitation);
             //static_assert(!enableTemperature)
             //static_assert(!enableEnergy)

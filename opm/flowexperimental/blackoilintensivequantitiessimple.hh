@@ -91,7 +91,7 @@ class BlackOilIntensiveQuantitiesSimple
     enum { enablePolymer = getPropValue<TypeTag, Properties::EnablePolymer>() };
     enum { enableFoam = getPropValue<TypeTag, Properties::EnableFoam>() };
     enum { enableBrine = getPropValue<TypeTag, Properties::EnableBrine>() };
-    enum { enableEvaporation = getPropValue<TypeTag, Properties::EnableEvaporation>() };
+    enum { enableVapwat = getPropValue<TypeTag, Properties::EnableVapwat>() };
     enum { enableSaltPrecipitation = getPropValue<TypeTag, Properties::EnableSaltPrecipitation>() };
     enum { enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>() };
     enum { enableEnergy = getPropValue<TypeTag, Properties::EnableEnergy>() };
@@ -127,7 +127,7 @@ public:
                                           enableTemperature,
                                           enableEnergy,
                                           compositionSwitchEnabled,
-                                          enableEvaporation,
+                                          enableVapwat,
                                           enableBrine,
                                           enableSaltPrecipitation,
                                           false,
@@ -137,7 +137,7 @@ public:
                                                 enableTemperature,
                                                 enableEnergy,
                                                 compositionSwitchEnabled,
-                                                enableEvaporation,
+                                                enableVapwat,
                                                 enableBrine,
                                                 enableSaltPrecipitation,
                                                 false,// no gas in water
@@ -149,8 +149,8 @@ public:
         if (compositionSwitchEnabled) {
             fluidState_.setRs(0.0);
             fluidState_.setRv(0.0);
-        }        
-        if (enableEvaporation) { 
+        }
+        if (enableVapwat) {
             fluidState_.setRvw(0.0);
         }
     }
@@ -177,7 +177,7 @@ public:
                 unsigned globalSpaceIdx,
                 unsigned timeIdx)
     {
-       
+
         this->extrusionFactor_ = 1.0;// to avoid fixing parent update
         OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantities);
         //const auto& priVars = elemCtx.primaryVars(dofIdx, timeIdx);
@@ -242,7 +242,7 @@ public:
         //asImp_().solventPreSatFuncUpdate_(elemCtx, dofIdx, timeIdx);
 
         // now we compute all phase pressures
-        
+
         std::array<Evaluation, numPhases> pC;// = {0, 0, 0};
         computeRelpermAndPC(mobility_, pC, problem, fluidState_, globalSpaceIdx);
         // oil is the reference phase for pressure
@@ -346,10 +346,10 @@ public:
         for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx) {
             if (!FluidSystem::phaseIsActive(phaseIdx))
                 continue;
-            computeInverseFormationVolumeFactorAndViscosity(fluidState_, phaseIdx, pvtRegionIdx, SoMax);            
+            computeInverseFormationVolumeFactorAndViscosity(fluidState_, phaseIdx, pvtRegionIdx, SoMax);
         }
         Valgrind::CheckDefined(mobility_);
-        
+
         // calculate the phase densities
         Evaluation rho;
         if (FluidSystem::phaseIsActive(waterPhaseIdx)) {
@@ -396,7 +396,7 @@ public:
         porosity_ = referencePorosity_;
         // the porosity must be modified by the compressibility of the
         // rock...
-        
+
         Scalar rockCompressibility = problem.rockCompressibility(globalSpaceIdx);
         if (rockCompressibility > 0.0) {
             OPM_TIMEBLOCK_LOCAL(UpdateRockCompressibility);
@@ -414,7 +414,7 @@ public:
 
         // deal with water induced rock compaction
         porosity_ *= problem.template rockCompPoroMultiplier<Evaluation>(*this, globalSpaceIdx);
-        
+
         // the MICP processes change the porosity
         // if constexpr (enableMICP){
         //   Evaluation biofilm_ = priVars.makeEvaluation(Indices::biofilmConcentrationIdx, timeIdx, linearizationType);
@@ -427,9 +427,9 @@ public:
         //     Evaluation Sp = priVars.makeEvaluation(Indices::saltConcentrationIdx, timeIdx);
         //     porosity_ *= (1.0 - Sp);
         // }
-        
+
         rockCompTransMultiplier_ = problem.template rockCompTransMultiplier<Evaluation>(*this, globalSpaceIdx);
-        
+
         // asImp_().solventPvtUpdate_(elemCtx, dofIdx, timeIdx);
         // asImp_().zPvtUpdate_();
         // asImp_().polymerPropertiesUpdate_(elemCtx, dofIdx, timeIdx);
@@ -531,21 +531,21 @@ public:
         }
         //mobility_[phaseIdx] /= 1e-3;
     }
-    
+
     void computeRelpermAndPC(std::array<Evaluation,numPhases>& mobility,
                              std::array<Evaluation, numPhases>& pC,
                              const Problem& problem,
                              const FluidState& fluidState,
                              unsigned globalSpaceIdx){
         OPM_TIMEBLOCK_LOCAL(UpdateRelperm);
-        const auto& materialParams = problem.materialLawParams(globalSpaceIdx);                        
-        MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);        
+        const auto& materialParams = problem.materialLawParams(globalSpaceIdx);
+        MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);
         problem.updateRelperms(mobility, dirMob_, fluidState, globalSpaceIdx);
-    
+
         //mobility_[waterPhaseIdx] = Sw;
         //mobility_[oilPhaseIdx] = So;
         //mobility_[gasPhaseIdx] = Sg;
-    }    
+    }
     /*!
      * \copydoc ImmiscibleIntensiveQuantities::porosity
      */
