@@ -49,7 +49,7 @@ namespace Opm{
             const auto& primaryVars = this->model().solution(/*timeIdx*/0);
             const auto& problem = this->simulator().problem();
             const auto& model = this->simulator().model();
-            const auto& vanguard = this->simulator().vanguard();
+            //const auto& vanguard = this->simulator().vanguard();
             size_t numGridDof = primaryVars.size();
             std::string failureMsg("Error updating explicit quantities");
             bool any_changed = false;

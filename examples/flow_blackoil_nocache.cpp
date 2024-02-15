@@ -48,11 +48,11 @@ namespace TTag {
         using InheritsFrom = std::tuple<EclFlowProblem>;
     };
 }
-    template<class TypeTag>
-    struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
+    // template<class TypeTag>
+    // struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
 
-    template<class TypeTag>
-    struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
+    // template<class TypeTag>
+    // struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
 
     template<class TypeTag>
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
@@ -65,28 +65,28 @@ namespace TTag {
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
     using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
     };
-    template<class TypeTag>
-    struct Problem<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclProblemSimpleFast<TypeTag>;
-    };
-    template<class TypeTag>
-    struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
-    {
-    private:
-        using Scalar = GetPropType<TypeTag, Properties::Scalar>;
-        using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
+    // template<class TypeTag>
+    // struct Problem<TypeTag, TTag::EclFlowProblemTest> {
+    //     using type = EclProblemSimpleFast<TypeTag>;
+    // };
+    // template<class TypeTag>
+    // struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
+    // {
+    // private:
+    //     using Scalar = GetPropType<TypeTag, Properties::Scalar>;
+    //     using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
 
-        using Traits = ThreePhaseMaterialTraits<Scalar,
-                                                /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
-                                                /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
-                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
+    //     using Traits = ThreePhaseMaterialTraits<Scalar,
+    //                                             /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
+    //                                             /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
+    //                                             /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
 
-    public:
-        using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;
-        //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
+    // public:
+    //     //using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;
+    //     using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
 
-        using type = typename EclMaterialLawManager::MaterialLaw;
-    };
+    //     using type = typename EclMaterialLawManager::MaterialLaw;
+    // };
 
 };
 

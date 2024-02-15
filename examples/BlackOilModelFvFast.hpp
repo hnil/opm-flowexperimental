@@ -107,7 +107,7 @@ namespace Opm{
         using ThreadManager = GetPropType<TypeTag, Properties::ThreadManager>;
         //using GridView = GetPropType<TypeTag, Properties::GridView>;
         using Element = typename GridView::template Codim<0>::Entity;
-        using ElementIterator = typename GridView::template Codim<0>::Iterator;
+        //using ElementIterator = typename GridView::template Codim<0>::Iterator;
         // loop over all elements...
         using GridViewType = decltype(gridSubDomain.view);
         const auto& primaryVars = this->solution(timeIdx);
@@ -147,8 +147,8 @@ namespace Opm{
 
         const IntensiveQuantities& intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
             OPM_TIMEBLOCK_LOCAL(intensiveQuantities);
-            const auto& primaryVars = this->solution(timeIdx);
-            const auto& problem = this->simulator_.problem();
+            //const auto& primaryVars = this->solution(timeIdx);
+            //const auto& problem = this->simulator_.problem();
             const auto intquant = this->cachedIntensiveQuantities(globalIdx, timeIdx);
             if (!this->enableIntensiveQuantityCache_){
                 OPM_THROW(std::logic_error, "Run without intentive quantites not enabled: Use --enable-intensive-quantity=true");
