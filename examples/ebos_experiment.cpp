@@ -25,7 +25,21 @@
 
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh> 
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
+#include <opm/models/discretization/common/baseauxiliarymodule.hh>
+namespace Opm{
+    template<typename TypeTag>
+    class MonitoringAuxModule : public BaseAuxiliaryModule<TypeTag>
+    {      
+        using GlobalEqVector = GetPropType<TypeTag, Properties::GlobalEqVector>;
+    public:
+        void postSolve(GlobalEqVector& deltaX){
+            std::cout << "Dummy PostSolve" << std::endl;
+        }
+    };
+
+}
+
 namespace Opm{    
     template<typename TypeTag>
     class EbosProblemFlow: public EbosProblem<TypeTag>{
@@ -44,11 +58,30 @@ namespace Opm{
             }
             Parent::timeIntegration();
         }
+        void finishInit(){
+            ParentType::finishInit();
+            this->simulator().model().addAuxModule(monitorAux_);
+        }
+    private:
+        using MonitorAuxType = typename MonitoringAuxModule<TypeTag>;
+        MonitorAuxType monitorAux_;    
         
-        //private:
         //std::unique_ptr<TimeStepper> adaptiveTimeStepping_;
     };
 
+    template<typename TypeTag>
+    class EclWellModelFvExtra: public EclWellModel<TypeTag>{
+    public:
+        void beginIteration(){
+            Parent::beginIterations();
+            std::cout << "EclWellModelFvExtra begin iteration" << std::endl;
+        }
+        void beginIteration(){
+            Parent::endIterations();
+            std::cout << "EclWellModelFvExtra end iteration" << std::endl;
+        }
+    }
+    
     template<typename TypeTag>
     class BlackOilModelFv: public BlackOilModel<TypeTag>{
         using Parent = BlackOilModel<TypeTag>;
@@ -108,6 +141,10 @@ namespace Opm{
                 return intQuants;
             }
 
+        }
+        void endIterations(){
+            Parent::endIterations();
+            std::cout << "BlackOilModelFv endIterations" << std::endl; 
         }
         
     };
