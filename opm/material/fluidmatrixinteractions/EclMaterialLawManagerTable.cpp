@@ -63,14 +63,14 @@ std::vector<double> normalizeKrValues_(const double tolcrit,
 
 namespace Opm {
 
-template<class TraitsT>
-EclMaterialLawManagerTable<TraitsT>::EclMaterialLawManagerTable() = default;
+template<class TraitsT,int myPhases>
+EclMaterialLawManagerTable<TraitsT,myPhases>::EclMaterialLawManagerTable() = default;
 
-template<class TraitsT>
-EclMaterialLawManagerTable<TraitsT>::~EclMaterialLawManagerTable() = default;
+template<class TraitsT,int myPhases>
+EclMaterialLawManagerTable<TraitsT,myPhases>::~EclMaterialLawManagerTable() = default;
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 initFromState(const EclipseState& eclState)
 {
     // get the number of saturation regions and the number of cells in the deck
@@ -130,8 +130,8 @@ initFromState(const EclipseState& eclState)
     }
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 {
     // get the number of saturation regions
@@ -362,14 +362,14 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
     }
 }
 
-template<class TraitsT>
-typename TraitsT::Scalar EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+std::pair<typename TraitsT::Scalar, bool> EclMaterialLawManagerTable<TraitsT, myPhases>::
 applySwatinit(unsigned elemIdx,
               Scalar pcow,
               Scalar Sw)
 {
     auto& elemScaledEpsInfo = oilWaterScaledEpsInfoDrainage_[elemIdx];
-
+    bool newSwatInit = false;
     // TODO: Mixed wettability systems - see ecl kw OPTIONS switch 74
 
     if (pcow < 0.0)
@@ -411,12 +411,12 @@ applySwatinit(unsigned elemIdx,
         }
     }
 
-    return Sw;
+    return {Sw, newSwatInit};
 }
 
-template<class TraitsT>
-const typename EclMaterialLawManagerTable<TraitsT>::MaterialLawParams&
-EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+const typename EclMaterialLawManagerTable<TraitsT,myPhases>::MaterialLawParams&
+EclMaterialLawManagerTable<TraitsT,myPhases>::
 connectionMaterialLawParams(unsigned satRegionIdx, unsigned elemIdx) const
 {
     MaterialLawParams& mlp = const_cast<MaterialLawParams&>(materialLawParams_[elemIdx]);
@@ -427,77 +427,24 @@ connectionMaterialLawParams(unsigned satRegionIdx, unsigned elemIdx) const
     // unsigned impRegionIdx = satRegionIdx;
 
     // change the sat table it points to.
-    switch (mlp.approach()) {
-    case EclMultiplexerApproach::Stone1: {
-        auto& realParams = mlp.template getRealParams<EclMultiplexerApproach::Stone1>();
-
-        realParams.oilWaterParams().drainageParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[satRegionIdx]);
-        realParams.oilWaterParams().drainageParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setUnscaledPoints(gasOilUnscaledPointsVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setEffectiveLawParams(gasOilEffectiveParamVector_[satRegionIdx]);
+    auto& realParams = mlp;
+    realParams.oilWaterParams().drainageParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[satRegionIdx]);
+    realParams.oilWaterParams().drainageParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[satRegionIdx]);
+    realParams.gasOilParams().drainageParams().setUnscaledPoints(gasOilUnscaledPointsVector_[satRegionIdx]);
+    realParams.gasOilParams().drainageParams().setEffectiveLawParams(gasOilEffectiveParamVector_[satRegionIdx]);
 //            if (enableHysteresis()) {
 //                realParams.oilWaterParams().imbibitionParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[impRegionIdx]);
 //                realParams.oilWaterParams().imbibitionParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[impRegionIdx]);
 //                realParams.gasOilParams().imbibitionParams().setUnscaledPoints(gasOilUnscaledPointsVector_[impRegionIdx]);
 //                realParams.gasOilParams().imbibitionParams().setEffectiveLawParams(gasOilEffectiveParamVector_[impRegionIdx]);
 //            }
-    }
-        break;
 
-    case EclMultiplexerApproach::Stone2: {
-        auto& realParams = mlp.template getRealParams<EclMultiplexerApproach::Stone2>();
-        realParams.oilWaterParams().drainageParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[satRegionIdx]);
-        realParams.oilWaterParams().drainageParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setUnscaledPoints(gasOilUnscaledPointsVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setEffectiveLawParams(gasOilEffectiveParamVector_[satRegionIdx]);
-//            if (enableHysteresis()) {
-//                realParams.oilWaterParams().imbibitionParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[impRegionIdx]);
-//                realParams.oilWaterParams().imbibitionParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[impRegionIdx]);
-//                realParams.gasOilParams().imbibitionParams().setUnscaledPoints(gasOilUnscaledPointsVector_[impRegionIdx]);
-//                realParams.gasOilParams().imbibitionParams().setEffectiveLawParams(gasOilEffectiveParamVector_[impRegionIdx]);
-//            }
-    }
-        break;
-
-    case EclMultiplexerApproach::Default: {
-        auto& realParams = mlp.template getRealParams<EclMultiplexerApproach::Default>();
-        realParams.oilWaterParams().drainageParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[satRegionIdx]);
-        realParams.oilWaterParams().drainageParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setUnscaledPoints(gasOilUnscaledPointsVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setEffectiveLawParams(gasOilEffectiveParamVector_[satRegionIdx]);
-//            if (enableHysteresis()) {
-//                realParams.oilWaterParams().imbibitionParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[impRegionIdx]);
-//                realParams.oilWaterParams().imbibitionParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[impRegionIdx]);
-//                realParams.gasOilParams().imbibitionParams().setUnscaledPoints(gasOilUnscaledPointsVector_[impRegionIdx]);
-//                realParams.gasOilParams().imbibitionParams().setEffectiveLawParams(gasOilEffectiveParamVector_[impRegionIdx]);
-//            }
-    }
-        break;
-
-    case EclMultiplexerApproach::TwoPhase: {
-        auto& realParams = mlp.template getRealParams<EclMultiplexerApproach::TwoPhase>();
-        realParams.oilWaterParams().drainageParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[satRegionIdx]);
-        realParams.oilWaterParams().drainageParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setUnscaledPoints(gasOilUnscaledPointsVector_[satRegionIdx]);
-        realParams.gasOilParams().drainageParams().setEffectiveLawParams(gasOilEffectiveParamVector_[satRegionIdx]);
-//            if (enableHysteresis()) {
-//                realParams.oilWaterParams().imbibitionParams().setUnscaledPoints(oilWaterUnscaledPointsVector_[impRegionIdx]);
-//                realParams.oilWaterParams().imbibitionParams().setEffectiveLawParams(oilWaterEffectiveParamVector_[impRegionIdx]);
-//                realParams.gasOilParams().imbibitionParams().setUnscaledPoints(gasOilUnscaledPointsVector_[impRegionIdx]);
-//                realParams.gasOilParams().imbibitionParams().setEffectiveLawParams(gasOilEffectiveParamVector_[impRegionIdx]);
-//            }
-    }
-        break;
-
-    default:
-        throw std::logic_error("Enum value for material approach unknown!");
-    }
 
     return mlp;
 }
 
-template<class TraitsT>
-int EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+int EclMaterialLawManagerTable<TraitsT,myPhases>::
 getKrnumSatIdx(unsigned elemIdx, FaceDir::DirEnum facedir) const
 {
     using Dir = FaceDir::DirEnum;
@@ -523,8 +470,8 @@ getKrnumSatIdx(unsigned elemIdx, FaceDir::DirEnum facedir) const
     }
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 oilWaterHysteresisParams(Scalar& pcSwMdc,
                          Scalar& krnSwMdc,
                          unsigned elemIdx) const
@@ -536,8 +483,8 @@ oilWaterHysteresisParams(Scalar& pcSwMdc,
     MaterialLaw::oilWaterHysteresisParams(pcSwMdc, krnSwMdc, params);
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 setOilWaterHysteresisParams(const Scalar& pcSwMdc,
                             const Scalar& krnSwMdc,
                             unsigned elemIdx)
@@ -549,8 +496,8 @@ setOilWaterHysteresisParams(const Scalar& pcSwMdc,
     MaterialLaw::setOilWaterHysteresisParams(pcSwMdc, krnSwMdc, params);
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 gasOilHysteresisParams(Scalar& pcSwMdc,
                        Scalar& krnSwMdc,
                        unsigned elemIdx) const
@@ -562,8 +509,8 @@ gasOilHysteresisParams(Scalar& pcSwMdc,
     MaterialLaw::gasOilHysteresisParams(pcSwMdc, krnSwMdc, params);
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 setGasOilHysteresisParams(const Scalar& pcSwMdc,
                           const Scalar& krnSwMdc,
                           unsigned elemIdx)
@@ -575,39 +522,20 @@ setGasOilHysteresisParams(const Scalar& pcSwMdc,
     MaterialLaw::setGasOilHysteresisParams(pcSwMdc, krnSwMdc, params);
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 EclEpsScalingPoints<typename TraitsT::Scalar>&
-EclMaterialLawManagerTable<TraitsT>::
+EclMaterialLawManagerTable<TraitsT,myPhases>::
 oilWaterScaledEpsPointsDrainage(unsigned elemIdx)
 {
-    auto& materialParams = materialLawParams_[elemIdx];
-    switch (materialParams.approach()) {
-    case EclMultiplexerApproach::Stone1: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Stone1>();
-        return realParams.oilWaterParams().drainageParams().scaledPoints();
-    }
+    //auto& materialParams = materialLawParams_[elemIdx];
+    auto& realParams = materialLawParams_[elemIdx];
 
-    case EclMultiplexerApproach::Stone2: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Stone2>();
-        return realParams.oilWaterParams().drainageParams().scaledPoints();
-    }
-
-    case EclMultiplexerApproach::Default: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Default>();
-        return realParams.oilWaterParams().drainageParams().scaledPoints();
-    }
-
-    case EclMultiplexerApproach::TwoPhase: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::TwoPhase>();
-        return realParams.oilWaterParams().drainageParams().scaledPoints();
-    }
-    default:
-        throw std::logic_error("Enum value for material approach unknown!");
-    }
+    //auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Default>();
+    return realParams.oilWaterParams().drainageParams().scaledPoints();
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGlobalEpsOptions_(const EclipseState& eclState)
 {
     oilWaterEclEpsConfig_ = std::make_shared<EclEpsConfig>();
@@ -616,21 +544,22 @@ readGlobalEpsOptions_(const EclipseState& eclState)
     enableEndPointScaling_ = eclState.getTableManager().hasTables("ENKRVD");
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGlobalHysteresisOptions_(const EclipseState& state)
 {
     hysteresisConfig_ = std::make_shared<EclHysteresisConfig>();
     hysteresisConfig_->initFromState(state.runspec());
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGlobalThreePhaseOptions_(const Runspec& runspec)
 {
     bool gasEnabled = runspec.phases().active(Phase::GAS);
     bool oilEnabled = runspec.phases().active(Phase::OIL);
     bool waterEnabled = runspec.phases().active(Phase::WATER);
+
 
     int numEnabled =
         (gasEnabled?1:0)
@@ -656,15 +585,21 @@ readGlobalThreePhaseOptions_(const Runspec& runspec)
         threePhaseApproach_ = EclMultiplexerApproach::Default;
         const auto& satctrls = runspec.saturationFunctionControls();
         if (satctrls.krModel() == SatFuncControls::ThreePhaseOilKrModel::Stone2)
-            threePhaseApproach_ = EclMultiplexerApproach::Stone2;
+            throw std::runtime_error("Stone2");
         else if (satctrls.krModel() == SatFuncControls::ThreePhaseOilKrModel::Stone1)
-            threePhaseApproach_ = EclMultiplexerApproach::Stone1;
+            throw std::runtime_error("Stone1");
+
+        // const auto& satctrls = runspec.saturationFunctionControls();
+        // if (satctrls.krModel() == SatFuncControls::ThreePhaseOilKrModel::Stone2)
+        //     threePhaseApproach_ = EclMultiplexerApproach::Stone2;
+        // else if (satctrls.krModel() == SatFuncControls::ThreePhaseOilKrModel::Stone1)
+        //     threePhaseApproach_ = EclMultiplexerApproach::Stone1;
     }
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT>::
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParameters_(Container& dest,
                                const EclipseState& eclState,
                                unsigned satRegionIdx)
@@ -761,8 +696,8 @@ readGasOilEffectiveParameters_(Container& dest,
     }
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersSgof_(GasOilEffectiveTwoPhaseParams& effParams,
                                    const Scalar Swco,
                                    const double tolcrit,
@@ -783,8 +718,8 @@ readGasOilEffectiveParametersSgof_(GasOilEffectiveTwoPhaseParams& effParams,
     realParams.finalize();
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersSlgof_(GasOilEffectiveTwoPhaseParams& effParams,
                                     const Scalar Swco,
                                     const double tolcrit,
@@ -805,8 +740,8 @@ readGasOilEffectiveParametersSlgof_(GasOilEffectiveTwoPhaseParams& effParams,
     realParams.finalize();
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
                                       const Scalar Swco,
                                       const double tolcrit,
@@ -829,8 +764,8 @@ readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
     realParams.finalize();
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
                                       const Scalar Swco,
                                       const double tolcrit,
@@ -853,9 +788,9 @@ readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
     realParams.finalize();
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT>::
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readOilWaterEffectiveParameters_(Container& dest,
                                  const EclipseState& eclState,
                                  unsigned satRegionIdx)
@@ -970,9 +905,9 @@ readOilWaterEffectiveParameters_(Container& dest,
     }
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT>::
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasWaterEffectiveParameters_(Container& dest,
                                  const EclipseState& eclState,
                                  unsigned satRegionIdx)
@@ -1028,9 +963,9 @@ readGasWaterEffectiveParameters_(Container& dest,
     }
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT>::
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilUnscaledPoints_(Container& dest,
                           std::shared_ptr<EclEpsConfig> config,
                           const EclipseState& /* eclState */,
@@ -1046,9 +981,9 @@ readGasOilUnscaledPoints_(Container& dest,
                              EclTwoPhaseSystemType::GasOil);
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT>::
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readOilWaterUnscaledPoints_(Container& dest,
                             std::shared_ptr<EclEpsConfig> config,
                             const EclipseState& /* eclState */,
@@ -1064,9 +999,9 @@ readOilWaterUnscaledPoints_(Container& dest,
                              EclTwoPhaseSystemType::OilWater);
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT>::
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 readGasWaterUnscaledPoints_(Container& dest,
                             std::shared_ptr<EclEpsConfig> config,
                             const EclipseState& /* eclState */,
@@ -1082,10 +1017,10 @@ readGasWaterUnscaledPoints_(Container& dest,
                              EclTwoPhaseSystemType::GasWater);
 }
 
-template<class TraitsT>
+template<class TraitsT,int myPhases>
 std::tuple<EclEpsScalingPointsInfo<typename TraitsT::Scalar>,
            EclEpsScalingPoints<typename TraitsT::Scalar>>
-EclMaterialLawManagerTable<TraitsT>::
+EclMaterialLawManagerTable<TraitsT,myPhases>::
 readScaledPoints_(const EclEpsConfig& config,
                   const EclipseState& eclState,
                   const EclEpsGridProperties& epsGridProperties,
@@ -1103,70 +1038,33 @@ readScaledPoints_(const EclEpsConfig& config,
     return {destInfo, destPoint};
 }
 
-template<class TraitsT>
-void EclMaterialLawManagerTable<TraitsT>::
+template<class TraitsT,int myPhases>
+void EclMaterialLawManagerTable<TraitsT,myPhases>::
 initThreePhaseParams_(const EclipseState& /* eclState */,
                       MaterialLawParams& materialParams,
-                      unsigned satRegionIdx,
+                      unsigned /*satRegionIdx*/,
                       const EclEpsScalingPointsInfo<Scalar>& epsInfo,
                       std::shared_ptr<OilWaterTwoPhaseHystParams> oilWaterParams,
                       std::shared_ptr<GasOilTwoPhaseHystParams> gasOilParams,
-                      std::shared_ptr<GasWaterTwoPhaseHystParams> gasWaterParams)
+                      std::shared_ptr<GasWaterTwoPhaseHystParams> /*gasWaterParams*/)
 {
-    materialParams.setApproach(threePhaseApproach_);
-
-    switch (materialParams.approach()) {
-    case EclMultiplexerApproach::Stone1: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Stone1>();
-        realParams.setGasOilParams(gasOilParams);
-        realParams.setOilWaterParams(oilWaterParams);
-        realParams.setSwl(epsInfo.Swl);
-
-        if (!stoneEtas.empty()) {
-            realParams.setEta(stoneEtas[satRegionIdx]);
-        }
-        else
-            realParams.setEta(1.0);
-        realParams.finalize();
-        break;
+    auto& realParams = materialParams;//.template getRealParams<EclMultiplexerApproach::Default>();
+    // if constexpr (myPhases ==3){
+    //     realParams.setApproach(this->parent_.threePhaseApproach_);
+    // }
+    if constexpr (myPhases ==2){
+        // should be able to set this compile time
+        realParams.setApproach(this->twoPhaseApproach_);
     }
+    realParams.setGasOilParams(gasOilParams);
+    realParams.setOilWaterParams(oilWaterParams);
+    realParams.setSwl(epsInfo.Swl);
+    realParams.finalize();
 
-    case EclMultiplexerApproach::Stone2: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Stone2>();
-        realParams.setGasOilParams(gasOilParams);
-        realParams.setOilWaterParams(oilWaterParams);
-        realParams.setSwl(epsInfo.Swl);
-        realParams.finalize();
-        break;
-    }
-
-    case EclMultiplexerApproach::Default: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::Default>();
-        realParams.setGasOilParams(gasOilParams);
-        realParams.setOilWaterParams(oilWaterParams);
-        realParams.setSwl(epsInfo.Swl);
-        realParams.finalize();
-        break;
-    }
-
-    case EclMultiplexerApproach::TwoPhase: {
-        auto& realParams = materialParams.template getRealParams<EclMultiplexerApproach::TwoPhase>();
-        realParams.setGasOilParams(gasOilParams);
-        realParams.setOilWaterParams(oilWaterParams);
-        realParams.setGasWaterParams(gasWaterParams);
-        realParams.setApproach(twoPhaseApproach_);
-        realParams.finalize();
-        break;
-    }
-
-    case EclMultiplexerApproach::OnePhase: {
-        // Nothing to do, no parameters.
-        break;
-    }
-    }
 }
 
-template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2>>;
-template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<float,0,1,2>>;
+template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2>,3>;
+template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2>,2>;
+//template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<float,0,1,2>>;
 
 } // namespace Opm

@@ -17,19 +17,26 @@
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "config.h"
-// #if HAVE_TRACY
-// #include "tracy/Tracy.hpp"
-// #include "tracy/TracyC.h"
-// #define OPM_TIMEBLOCK(blockname);// ZoneNamedN(blockname, #blockname, true);
-// #define OPM_TIMEBLOCK_LOCAL(blockname);// ZoneNamedN(blockname, #blockname, true);
-// #endif
+#if HAVE_TRACY
+#include "tracy/Tracy.hpp"
+#include "tracy/TracyC.h"
+#define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
+#define OPM_TIMEBLOCK_LOCAL(blockname);// ZoneNamedN(blockname, #blockname, true);
+#endif
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/flowexperimental/blackoilintensivequantitiesdrygas.hh>
-#include <opm/flowexperimental/blackoilintensivequantitiesdrygas.hh>
+#include <opm/flowexperimental/eclblackoilintensivequantities.hh>
+#include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+
+// initialization modifications to be able to inititialize with new material manager
+#include <ebos/equil/equilibrationhelpers.hh>
+#include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
+#include <ebos/equil/initstateequil.hh>
+#include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
 #include "BlackOilModelFvFast.hpp"
+#include "EclProblemSimpleFast.hpp"
 
 namespace Opm {
 namespace Properties {
@@ -50,11 +57,20 @@ namespace TTag {
     struct Model<TypeTag, TTag::EclFlowProblemTest> {
         using type = BlackOilModelFvFast<TypeTag>;
     };
+    template<class TypeTag>
+    struct Problem<TypeTag, TTag::EclFlowProblemTest> {
+        using type = EclProblemSimpleFast<TypeTag>;
+    };
 
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
-    using type = BlackOilIntensiveQuantitiesDryGas<TypeTag>;
+        using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
+        //using type = EclBlackOilIntensiveQuantities<TypeTag>;
+        //using type = EclBlackOilIntensiveQuantities<TypeTag>;
+
     };
+
+
     template<class TypeTag>
     struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
     {
@@ -68,10 +84,34 @@ namespace TTag {
                                                 /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
 
     public:
-        using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
+        using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits,2>;
+        //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
 
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
+    template<class TypeTag>
+    struct Indices<TypeTag, TTag::EclFlowProblemTest>
+    {
+    private:
+        // it is unfortunately not possible to simply use 'TypeTag' here because this leads
+        // to cyclic definitions of some properties. if this happens the compiler error
+        // messages unfortunately are *really* confusing and not really helpful.
+        using BaseTypeTag = TTag::EclFlowProblem;
+        using FluidSystem = GetPropType<BaseTypeTag, Properties::FluidSystem>;
+
+    public:
+        typedef BlackOilTwoPhaseIndices<getPropValue<TypeTag, Properties::EnableSolvent>(),
+                                        getPropValue<TypeTag, Properties::EnableExtbo>(),
+                                        getPropValue<TypeTag, Properties::EnablePolymer>(),
+                                        getPropValue<TypeTag, Properties::EnableEnergy>(),
+                                        getPropValue<TypeTag, Properties::EnableFoam>(),
+                                        getPropValue<TypeTag, Properties::EnableBrine>(),
+                                        /*PVOffset=*/0,
+                                        /*disabledCompIdx=*/FluidSystem::waterCompIdx,
+                                        getPropValue<TypeTag, Properties::EnableMICP>()> type;
+    };
+
+
 
 };
 

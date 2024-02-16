@@ -36,7 +36,9 @@
 #include <opm/material/fluidmatrixinteractions/SatCurveMultiplexer.hpp>
 #include <opm/material/fluidmatrixinteractions/EclEpsTwoPhaseLaw.hpp>
 #include <opm/material/fluidmatrixinteractions/EclHysteresisTwoPhaseLaw.hpp>
-#include <opm/material/fluidmatrixinteractions/EclMultiplexerMaterial.hpp>
+#include <opm/material/fluidmatrixinteractions/EclMultiplexerMaterialParams.hpp>
+#include <opm/material/fluidmatrixinteractions/EclDefaultMaterial.hpp>
+#include <opm/material/fluidmatrixinteractions/EclTwoPhaseMaterial.hpp>
 #include <opm/material/fluidmatrixinteractions/MaterialTraits.hpp>
 
 #include <cassert>
@@ -58,14 +60,14 @@ class SgofTable;
 class SlgofTable;
 class Sof2Table;
 class Sof3Table;
-
+class FieldPropsManager;
 /*!
  * \ingroup fluidmatrixinteractions
  *
  * \brief Provides an simple way to create and manage the material law objects
  *        for a complete ECL deck.
  */
-template <class TraitsT>
+template <class TraitsT, int myPhases=3>//, int myPhases>
 class EclMaterialLawManagerTable
 {
 private:
@@ -89,7 +91,7 @@ private:
     using GasWaterEffectiveTwoPhaseLaw = PiecewiseLinearTwoPhaseMaterial<GasWaterTraits>;
 
 
-    
+
     using GasOilEffectiveTwoPhaseParams = typename GasOilEffectiveTwoPhaseLaw::Params;
     using OilWaterEffectiveTwoPhaseParams = typename OilWaterEffectiveTwoPhaseLaw::Params;
     using GasWaterEffectiveTwoPhaseParams = typename GasWaterEffectiveTwoPhaseLaw::Params;
@@ -110,9 +112,24 @@ private:
     using OilWaterTwoPhaseHystParams = typename OilWaterTwoPhaseLaw::Params;
     using GasWaterTwoPhaseHystParams = typename GasWaterTwoPhaseLaw::Params;
 
+    template <int numP,class Dummy>
+    struct SelectMaterialLaw
+    {
+        using type = EclDefaultMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw>;
+    };
+
+    template <class Dummy>
+    struct SelectMaterialLaw<2,Dummy>
+    {
+        using type = EclTwoPhaseMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw, GasWaterTwoPhaseLaw>;
+    };
+
 public:
+
     // the three-phase material law used by the simulation
-    using MaterialLaw = EclMultiplexerMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw, GasWaterTwoPhaseLaw>;
+    //using MaterialLaw = EclMultiplexerMaterial<Traits, GasOilTwoPhaseLaw, OilWaterTwoPhaseLaw, GasWaterTwoPhaseLaw>;
+    //using MaterialLawParams = typename MaterialLaw::Params;
+    using MaterialLaw = typename SelectMaterialLaw<myPhases,int>::type;
     using MaterialLawParams = typename MaterialLaw::Params;
 
     EclMaterialLawManagerTable();
@@ -138,6 +155,35 @@ public:
 
     void initParamsForElements(const EclipseState& eclState, size_t numCompressedElems);
 
+    void initParamsForElements(const EclipseState& eclState,
+                               size_t numCompressedElems,
+                               const std::function<std::vector<int>(const FieldPropsManager&, const std::string&,
+                                                                    const unsigned int, bool)>& /*fieldPropIntOnLeafAssigner*/,
+                               const std::function<unsigned(unsigned)>& /*lookupIdxOnLevelZeroAssigner*/)
+    {
+        this->initParamsForElements(eclState, numCompressedElems);
+    }
+
+    std::pair<Scalar, bool>
+    applySwatinit(unsigned elemIdx,
+                  Scalar pcow,
+                  Scalar Sw);
+
+
+    void applyRestartSwatInit(const unsigned elemIdx, const Scalar maxPcow){
+            // Maximum capillary pressure adjusted from SWATINIT data.
+
+    auto& elemScaledEpsInfo =
+        this->oilWaterScaledEpsInfoDrainage_[elemIdx];
+
+    elemScaledEpsInfo.maxPcow = maxPcow;
+
+    this->oilWaterScaledEpsPointsDrainage(elemIdx)
+        .init(elemScaledEpsInfo,
+              *this->oilWaterEclEpsConfig_,
+              EclTwoPhaseSystemType::OilWater);
+    }
+
     /*!
      * \brief Modify the initial condition according to the SWATINIT keyword.
      *
@@ -146,9 +192,6 @@ public:
      * that the capillary pressure given depends on the particuars of how the simulator
      * calculates its initial condition.
      */
-    Scalar applySwatinit(unsigned elemIdx,
-                         Scalar pcow,
-                         Scalar Sw);
 
     bool enableEndPointScaling() const
     { return enableEndPointScaling_; }
@@ -192,12 +235,12 @@ public:
     { return imbnumRegionArray_[elemIdx]; }
 
     template <class FluidState>
-    void updateHysteresis(const FluidState& fluidState, unsigned elemIdx)
+    bool updateHysteresis(const FluidState& fluidState, unsigned elemIdx)
     {
         if (!enableHysteresis())
-            return;
+            return false;
 
-        MaterialLaw::updateHysteresis(materialLawParams_[elemIdx], fluidState);
+        return MaterialLaw::updateHysteresis(materialLawParams_[elemIdx], fluidState);
     }
 
     void oilWaterHysteresisParams(Scalar& pcSwMdc,
@@ -349,5 +392,4 @@ private:
     std::shared_ptr<EclEpsConfig> gasWaterConfig;
 };
 } // namespace Opm
-
 #endif
