@@ -1,6 +1,6 @@
 #ifndef BLACK_OIL_MODEL_FV_FAST_HPP
 #define BLACK_OIL_MODEL_FV_FAST_HPP
-#include <ebos/FIBlackOilModel.hpp>
+#include <opm/simulators/flow/FIBlackoilModel.hpp>
 namespace Opm{
     template<typename TypeTag>
     class BlackOilModelFvFast: public BlackOilModel<TypeTag>{

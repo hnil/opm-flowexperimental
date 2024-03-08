@@ -155,11 +155,9 @@ public:
 
     void initParamsForElements(const EclipseState& eclState, size_t numCompressedElems);
 
-    void initParamsForElements(const EclipseState& eclState,
-                               size_t numCompressedElems,
-                               const std::function<std::vector<int>(const FieldPropsManager&, const std::string&,
-                                                                    const unsigned int, bool)>& /*fieldPropIntOnLeafAssigner*/,
-                               const std::function<unsigned(unsigned)>& /*lookupIdxOnLevelZeroAssigner*/)
+    void initParamsForElements(const EclipseState& eclState, size_t numCompressedElems,
+                               const std::function<std::vector<int>(const FieldPropsManager&, const std::string&, bool)>&,
+                               const std::function<unsigned(unsigned)>&)
     {
         this->initParamsForElements(eclState, numCompressedElems);
     }
