@@ -33,12 +33,12 @@ namespace Opm {
 namespace Properties {
 namespace TTag {
     struct EclFlowProblemTest {
-        using InheritsFrom = std::tuple<EclFlowProblem>;
+        using InheritsFrom = std::tuple<FlowProblem>;
     };
 }
     template<class TypeTag>
     struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
-    
+
     template<class TypeTag>
     struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
 
@@ -54,16 +54,16 @@ namespace TTag {
     struct UseVolumetricResidual<TypeTag, TTag::EclFlowProblemTest> {
         static constexpr bool value = false;
     };
-    
+
     // use flow's linear solver backend for now
     template<class TypeTag>
     struct LinearSolverSplice<TypeTag, TTag::EclFlowProblemTest> {
         using type = TTag::FlowIstlSolver;
     };
 }
-     
+
 }
-   
+
 
 int main(int argc, char** argv)
 {

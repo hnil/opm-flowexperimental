@@ -41,14 +41,14 @@ struct EclFlowProblemEbos {
 };
 }
 
-template<class TypeTag>
-struct Model<TypeTag, TTag::EclFlowProblemEbos> {
-    using type = BlackOilModelFvNoCache<TypeTag>;
-};
-template<class TypeTag>
-struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
-    using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
-};
+// template<class TypeTag>
+// struct Model<TypeTag, TTag::EclFlowProblemEbos> {
+//     using type = BlackOilModelFvNoCache<TypeTag>;
+// };
+// template<class TypeTag>
+// struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
+//     using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
+// };
 // Set the problem class
 template<class TypeTag>
 struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
@@ -96,8 +96,8 @@ struct EclNewtonRelaxedTolerance<TypeTag, TTag::EclFlowProblemEbos> {
 //template<class TypeTag>
 //struct Linearizer<TypeTag, TTag::EclFlowProblemEbos> { using type = TpfaLinearizer<TypeTag>; };
 
-template<class TypeTag>
-struct LocalResidual<TypeTag, TTag::EclFlowProblemEbos> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
+// template<class TypeTag>
+// struct LocalResidual<TypeTag, TTag::EclFlowProblemEbos> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
 
 template<class TypeTag>
 struct EnableDiffusion<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };
@@ -109,6 +109,12 @@ struct EnableDisgasInWater<TypeTag, TTag::EclFlowProblemEbos> { static constexpr
 
 template<class TypeTag>
 struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulator<TypeTag>; };
+
+// template<class TypeTag>
+// struct LinearSolverBackend<TypeTag, TTag::EclFlowProblemEbos> {
+//     using type = ISTLSolver<TypeTag>;
+// };
+
 // // Set the problem class
 // template<class TypeTag>
 // struct Problem<TypeTag, TTag::EbosTypeTag> {
@@ -121,6 +127,8 @@ struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulato
 // };
 }
 }
+
+
 int main(int argc, char** argv)
 {
     using TypeTag = Opm::Properties::TTag::EclFlowProblemEbos;
