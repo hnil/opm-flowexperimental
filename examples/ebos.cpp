@@ -31,6 +31,14 @@
 // the trick is to be able to recalculate the residual from here.
 // unsure where the timestepping is done from suggestedtime??
 // suggestTimeStep is taken from newton solver in problem.limitTimestep
+namespace Opm{
+    template<typename TypeTag>
+    class OutputAuxModule : public BaseAuxiliaryModule<TypeTag>
+    {
+
+    };
+
+}
 
 
 namespace Opm {

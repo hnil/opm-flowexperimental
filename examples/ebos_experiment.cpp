@@ -32,8 +32,18 @@
 namespace Opm{
     template<typename TypeTag>
     class MonitoringAuxModule : public BaseAuxiliaryModule<TypeTag>
-    {      
+    {
         using GlobalEqVector = GetPropType<TypeTag, Properties::GlobalEqVector>;
+    public:
+        void postSolve(GlobalEqVector& deltaX){
+            std::cout << "Dummy PostSolve" << std::endl;
+        }
+    };
+
+}
+
+namespace Opm{
+=======
         using NeighborSet = typename BaseAuxiliaryModule<TypeTag>::NeighborSet;
         using SparseMatrixAdapter = GetPropType<TypeTag, Properties::SparseMatrixAdapter>;
     public:
@@ -48,7 +58,7 @@ namespace Opm{
         };
     };
 
-    
+
     template<typename TypeTag>
     class EbosProblemFlow: public EbosProblem<TypeTag>{
     public:
@@ -62,40 +72,84 @@ namespace Opm{
         {
             if (this->gridView().comm().rank() == 0){
                 std::cout << "----------------------Start TimeIntegration-------------------\n"
-                << std::flush;                                                     
+                << std::flush;
             }
             Parent::timeIntegration();
         }
         void finishInit(){
+            ParentType::finishInit();
+            this->simulator().model().addAuxModule(monitorAux_);
+        }
+    private:
+        using MonitorAuxType = typename MonitoringAuxModule<TypeTag>;
+        MonitorAuxType monitorAux_;
+
             Parent::finishInit();
             this->simulator().model().addAuxiliaryModule(&monitorAux_);
         }
     private:
         using MonitorAuxType = MonitoringAuxModule<TypeTag>;
-        MonitorAuxType monitorAux_;    
-    
+        MonitorAuxType monitorAux_;
+
         //private:
         //std::unique_ptr<TimeStepper> adaptiveTimeStepping_;
     };
 
     template<typename TypeTag>
-    class BlackoilWellModelFvExtra: public BlackoilWellModel<TypeTag>{
-        using Parent = BlackoilWellModel<TypeTag>;
-        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
+    class EclWellModelFvExtra: public EclWellModel<TypeTag>{
     public:
-        BlackoilWellModelFvExtra(Simulator& ebosSimulator): Parent(ebosSimulator) {};
         void beginIteration(){
-            Parent::beginIteration();
+            Parent::beginIterations();
             std::cout << "EclWellModelFvExtra begin iteration" << std::endl;
         }
-        void endIteration(){
-            Parent::endIteration();
+        void beginIteration(){
+            Parent::endIterations();
             std::cout << "EclWellModelFvExtra end iteration" << std::endl;
         }
-    };
-        
+    }
 
-    
+    template<typename TypeTag>
+    class BlackOilModelFv: public BlackOilModel<TypeTag>{
+        using Parent = BlackOilModel<TypeTag>;
+    public:
+        const IntensiveQuantities* cachedIntensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
+            //std::cout << "----------------------Update cached quantites with globalIdx-------------------\n";
+            //const IntensiveQuantities* intQuants = Parent::cachedIntensiveQuantities(globalIdx,timeIdx);return intQuants;
+            //const auto& primaryVar = this->solution(timeIdx)[globalIdx];
+            //const auto& problem = this->simulator_.problem();
+            IntensiveQuantities* intQuants = &(this->intensiveQuantityCache_[timeIdx][globalIdx]);
+            if (!(this->enableIntensiveQuantityCache_) ||
+                !(this->intensiveQuantityCacheUpToDate_[timeIdx][globalIdx])){
+                ///intQuants->update(problem,primaryVar, globalIdx, timeIdx);
+                return 0;
+            }else{
+                return intQuants;
+            }
+
+        }
+        IntensiveQuantities intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
+            const auto& primaryVar = this->solution(timeIdx)[globalIdx];
+            const auto& problem = this->simulator_.problem();
+            //IntensiveQuantities* intQuants = &(this->intensiveQuantityCache_[timeIdx][globalIdx]);
+            if (!(this->enableIntensiveQuantityCache_) ||
+                !(this->intensiveQuantityCacheUpToDate_[timeIdx][globalIdx])){
+                IntensiveQuantities intQuants;
+                intQuants.update(problem,primaryVar, globalIdx, timeIdx);
+                return intQuants;// reqiored for updating extrution factor
+            }else{
+                IntensiveQuantities intQuants = (this->intensiveQuantityCache_[timeIdx][globalIdx]);
+                return intQuants;
+            }
+
+        }
+        void endIterations(){
+            Parent::endIterations();
+            std::cout << "BlackOilModelFv endIterations" << std::endl;
+        }
+    };
+
+
+
     template<typename TypeTag>
     class EclNewtonMethodLinesearch: public EclNewtonMethod<TypeTag>{
     public:
@@ -124,9 +178,9 @@ namespace Opm{
             int iter = 0;
             std::cout << "Linesarch itr " << iter
                       << " ResError " << error
-                      << " WellError " << well_error << std::endl;    
+                      << " WellError " << well_error << std::endl;
             Parent::update_(nextSolution,currentSolution,solutionUpdate,currentResidual);
-            this->problem().endIteration();               
+            this->problem().endIteration();
             Scalar target = error;
             error = 1e99;
             while((error >= target) && (iter < 5)){
@@ -140,7 +194,7 @@ namespace Opm{
                 this->postSolve_(currentSolution,
                                  currentResidual,
                                  newSolutionUpdate);
-                //this->endIteration_(nextSolution, currentSolution);                
+                //this->endIteration_(nextSolution, currentSolution);
                 error = this->norm(residual);
                 well_error = this->well_error();
                 std::cout << "Linesarch itr " << iter
@@ -148,7 +202,7 @@ namespace Opm{
                           << " WellError " << well_error << std::endl;
                 newSolutionUpdate *= 0.5;
                 Parent::update_(nextSolution,currentSolution,newSolutionUpdate,currentResidual);
-                this->problem().endIteration();               
+                this->problem().endIteration();
             }
             //previousError_ = error;
         }
@@ -164,8 +218,8 @@ namespace Opm{
                     well_norm = this->norm(residual);
                 }else{
                     throw std::runtime_error("not standard wells");
-                }                                    
-                sum += well_norm;                        
+                }
+                sum += well_norm;
             }
             return sum;
         }
@@ -181,18 +235,18 @@ namespace Opm{
             // maybe add rhs of auxModules i.e. wells and aquifers
             return sum;
         }
-        
+
         bool proceed_(){
             std::cout << "----------------------Newton with early exit-------------------\n"
-                      << std::flush;                
+                      << std::flush;
             bool proceed = Parent::proceed_();
             return proceed;
         }
         //private:
         //Scalar previousError_;
-        
+
     };
-    
+
 } // namespace Opm
 
 // the current code use eclnewtonmethod adding other conditions to proceed_ should do the trick for KA
@@ -218,18 +272,18 @@ template<class TypeTag>
 struct Model<TypeTag, TTag::EclFlowProblemEbos> {
     using type = BlackOilModelFvNoCache<TypeTag>;
     // using type = BlackOilModelFvLocal<TypeTag>;
-};    
+};
 
 template<class TypeTag>
 struct EclWellModel<TypeTag, TTag::EclFlowProblemEbos> {
     using type = BlackoilWellModelFvExtra<TypeTag>;
 };
-    
+
 template<class TypeTag>
 struct NewtonMethod<TypeTag, TTag::EclFlowProblemEbos> {
     using type = EclNewtonMethodLinesearch<TypeTag>;
-};    
-    
+};
+
 template<class TypeTag>
 struct ThreadsPerProcess<TypeTag, TTag::EclFlowProblemEbos> {
     static constexpr int value = 1;
@@ -245,7 +299,7 @@ struct EclNewtonSumTolerance<TypeTag, TTag::EclFlowProblemEbos> {
     using type = GetPropType<TypeTag, Scalar>;
     static constexpr type value = 1e-5;
 };
-    
+
 // the default for the allowed volumetric error for oil per second
 template<class TypeTag>
 struct NewtonTolerance<TypeTag, TTag::EclFlowProblemEbos> {
@@ -280,23 +334,23 @@ struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
 
 template<class TypeTag>
 struct LocalResidual<TypeTag, TTag::EclFlowProblemEbos> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
-    
+
 template<class TypeTag>
 struct EnableDiffusion<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };
 
 template<class TypeTag>
-struct EnableDisgasInWater<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };    
+struct EnableDisgasInWater<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };
 
-//static constexpr bool has_disgas_in_water = getPropValue<TypeTag, Properties::EnableDisgasInWater>();    
-    
+//static constexpr bool has_disgas_in_water = getPropValue<TypeTag, Properties::EnableDisgasInWater>();
+
 template<class TypeTag>
-struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulator<TypeTag>; };    
+struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulator<TypeTag>; };
 // // Set the problem class
 // template<class TypeTag>
 // struct Problem<TypeTag, TTag::EbosTypeTag> {
 //     using type = EbosProblem<TypeTag>;
 // };
-    
+
 template<class TypeTag>
 struct EclEnableAquifers<TypeTag, TTag::EclFlowProblemEbos> {
      static constexpr bool value = false;
