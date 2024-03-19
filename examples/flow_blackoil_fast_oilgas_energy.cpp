@@ -31,10 +31,10 @@
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
 
 // initialization modifications to be able to inititialize with new material manager
-#include <ebos/equil/equilibrationhelpers.hh>
-#include <ebos/equil/equilibrationhelpers_impl.hh>//new file in flowexperimental
-#include <ebos/equil/initstateequil.hh>
-#include <ebos/equil/initstateequil_impl.hh>//new file in flow experimental
+#include <opm/simulators/flow/equil/EquilibrationHelpers.hh>
+#include <opm/simulators/flow/equil/EquilibrationHelpers_impl.hh>//new file in flowexperimental
+#include <opm/simulators/flow/equil/InitStateEquil.hh>
+#include <opm/simulators/flow/equil/InitStateEquil_impl.hh>//new file in flow experimental
 #include "BlackOilModelFvFast.hpp"
 #include "EclProblemSimpleFast.hpp"
 

@@ -49,14 +49,14 @@ struct EclFlowProblemEbos {
 };
 }
 
-// template<class TypeTag>
-// struct Model<TypeTag, TTag::EclFlowProblemEbos> {
-//     using type = BlackOilModelFvNoCache<TypeTag>;
-// };
-// template<class TypeTag>
-// struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
-//     using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
-// };
+template<class TypeTag>
+struct Model<TypeTag, TTag::EclFlowProblemEbos> {
+    using type = BlackOilModelFvNoCache<TypeTag>;
+};
+template<class TypeTag>
+struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
+     using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
+};
 // Set the problem class
 template<class TypeTag>
 struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
