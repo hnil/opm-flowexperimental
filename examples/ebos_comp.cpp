@@ -26,7 +26,9 @@
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 #include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
 #include "BlackOilModelFvNoCache.hpp"
-#include "co2ptflowproblem.hh"
+
+// #include <opm/models/common/diffusionmodule.hh>
+#include <tests/problems/co2ptflashproblem.hh>
 
 // // the current code use eclnewtonmethod adding other conditions to proceed_ should do the trick for KA
 // // adding linearshe sould be chaning the update_ function in the same class with condition that the error is reduced.
@@ -111,6 +113,7 @@ struct EclNewtonRelaxedTolerance<TypeTag, TTag::EclFlowProblemEbos> {
 
 template<class TypeTag>
 struct EnableDiffusion<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };
+
 
 template<class TypeTag>
 struct EnableDisgasInWater<TypeTag, TTag::EclFlowProblemEbos> { static constexpr bool value = false; };
@@ -227,11 +230,33 @@ public:
 
 
 #endif
+
 template <class TypeTag>
 struct SpatialDiscretizationSplice<TypeTag, TTag::CO2PTEcfvProblem>
 {
     using type = TTag::EcfvDiscretization;
 };
+// TODO: the following should be from the DATA file later.
+template <class TypeTag>
+struct EpisodeLength<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = GetPropType<TypeTag, Scalar>;
+    static constexpr type value = 0.1 * 60. * 60.;
+};
+
+template<class TypeTag>
+struct CellsX<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 30; };
+template<class TypeTag>
+struct CellsY<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
+// CellsZ is not needed, while to keep structuredgridvanguard.hh compile
+template<class TypeTag>
+struct CellsZ<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
+
+template <class TypeTag>
+struct Initialpressure<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = GetPropType<TypeTag, Scalar>;
+    static constexpr type value = 75.e5;
+};
+// TODO: the above values should be from the DATA file.
 
 template <class TypeTag>
 struct LocalLinearizerSplice<TypeTag, TTag::CO2PTEcfvProblem>
@@ -247,7 +272,10 @@ struct Problem<TypeTag, TTag::CO2PTEcfvProblem>
     //using type = Opm::FlowProblem<TypeTag>;
 };
 
-
+template <class TypeTag>
+struct EnableBrine<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
 
 template <class TypeTag>
 struct FlashSolver<TypeTag, TTag::CO2PTEcfvProblem> {
@@ -325,6 +353,13 @@ struct EnableMICP<TypeTag, TTag::CO2PTEcfvProblem> {
 // disable thermal flux boundaries by default
 template<class TypeTag>
 struct EnableThermalFluxBoundaries<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+
+
+template<class TypeTag>
+struct EnableDispersion<TypeTag, TTag::CO2PTEcfvProblem>
+{
     static constexpr bool value = false;
 };
 

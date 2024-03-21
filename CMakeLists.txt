@@ -280,6 +280,17 @@ opm_add_test(ebos
 		$<TARGET_OBJECTS:moduleVersionExp>
 )
 
+opm_add_test(ebos_comp
+             ONLY_COMPILE
+             ALWAYS_ENABLE
+             DEPENDS opmsimulators
+             LIBRARIES opmsimulators
+             SOURCES
+             examples/ebos_comp.cpp
+             $<TARGET_OBJECTS:moduleVersionExp>
+ )
+
+
 
 # opm_add_test(ebos_experiment
 #		ONLY_COMPILE
