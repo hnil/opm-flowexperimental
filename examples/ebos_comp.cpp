@@ -27,6 +27,9 @@
 #include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
 #include "BlackOilModelFvNoCache.hpp"
 #include "co2ptflowproblem.hh"
+#include <opm/simulators/flow/FlowGenericProblem.hpp>
+#include <opm/simulators/flow/FlowGenericProblem_impl.hpp>
+
 
 // // the current code use eclnewtonmethod adding other conditions to proceed_ should do the trick for KA
 // // adding linearshe sould be chaning the update_ function in the same class with condition that the error is reduced.
@@ -38,6 +41,48 @@ namespace Opm{
     class OutputAuxModule : public BaseAuxiliaryModule<TypeTag>
     {
 
+    };
+    template<typename TypeTag>
+    class EmptyModel : public BaseAuxiliaryModule<TypeTag>
+    {
+        using Scalar = GetPropType<TypeTag, Properties::Scalar>;
+        using GridView = GetPropType<TypeTag, Properties::GridView>;
+        using GlobalEqVector = GetPropType<TypeTag, Properties::GlobalEqVector>;
+        using SparseMatrixAdapter = GetPropType<TypeTag, Properties::SparseMatrixAdapter>;
+    public:
+        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
+        EmptyModel(Simulator& /*simulator*/){};
+        void init(){}
+        template<class Something>
+        void init(Something /*A*/){}
+        void prepareTracerBatches(){};
+        using NeighborSet = std::set<unsigned>;
+        void linearize(SparseMatrixAdapter& /*matrix*/, GlobalEqVector& /*residual*/){};
+        unsigned numDofs() const{return 0;};
+        void addNeighbors(std::vector<NeighborSet>& /*neighbors*/) const{};
+        //void applyInitial(){};
+        void initialSolutionApplied(){};
+        //void initFromRestart(const data::Aquifers& aquiferSoln);
+        template <class Restarter>
+        void serialize(Restarter& /*res*/){};
+
+        template <class Restarter>
+        void deserialize(Restarter& /*res*/){};
+
+        void beginEpisode(){};
+        void beginTimeStep(){};
+        void beginIteration(){};
+        // add the water rate due to aquifers to the source term.
+        template<class RateVector, class Context>
+        void addToSource(RateVector& rates, const Context& context, unsigned spaceIdx, unsigned timeIdx) const{};
+        template<class RateVector>
+        void addToSource(RateVector& rates, unsigned globalSpaceIdx, unsigned timeIdx) const{};
+        void endIteration()const{};
+        void endTimeStep(){};
+        void endEpisode(){};
+        void applyInitial(){};
+        template<class RateType>
+        void computeTotalRatesForDof(RateType& /*rate*/, unsigned /*globalIdx*/) const{};
     };
 
 }
@@ -64,6 +109,7 @@ template<class TypeTag>
 struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
     using type = EbosProblem<TypeTag>;
 };
+
 
 
 template<class TypeTag>
@@ -153,12 +199,15 @@ namespace Opm::Properties {
        //using InheritsFrom = std::tuple<VtkTracer, OutputBlackOil, CpGridVanguard>;
    };
    }
-
+    template<class TypeTag, class MyTypeTag>
+    struct ExpliciteRockCompaction{
+        using type = UndefinedProperty;
+    };
 // template <class TypeTag>
 // struct NumComp<TypeTag, TTag::CO2PTEcfvProblem> {
 //     static constexpr int value = 3;
 // };
-#if 1
+#if 0
 template <class TypeTag>
 struct MaterialLaw<TypeTag, TTag::CO2PTEcfvProblem> {
 private:
@@ -184,18 +233,19 @@ public:
     //using type = typename EclMaterialLawManager::MaterialLaw;
 };
 #endif
-#if 0
+
     template<class TypeTag>
     struct MaterialLaw<TypeTag, TTag::CO2PTEcfvProblem>
     {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
+        using Indices = GetPropType<TypeTag, Properties::Indices>;
 
         using Traits = ThreePhaseMaterialTraits<Scalar,
-                                                /*wettingPhaseIdx=*/ -1 , //FluidSystem::waterPhaseIdx,
-                                                /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
-                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
+                                                /*wettingPhaseIdx=*/0,
+                                                /*nonWettingPhaseIdx=*/1,
+                                                /*gasPhaseIdx=*/2>;
 
     public:
         using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
@@ -203,6 +253,34 @@ public:
 
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
+    template<class TypeTag>
+struct SolidEnergyLaw<TypeTag, TTag::CO2PTEcfvProblem>
+{
+private:
+    using Scalar = GetPropType<TypeTag, Properties::Scalar>;
+    using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
+
+public:
+    using EclThermalLawManager = ::Opm::EclThermalLawManager<Scalar, FluidSystem>;
+
+    using type = typename EclThermalLawManager::SolidEnergyLaw;
+};
+
+// Set the material law for thermal conduction
+template<class TypeTag>
+struct ThermalConductionLaw<TypeTag, TTag::CO2PTEcfvProblem>
+{
+private:
+    using Scalar = GetPropType<TypeTag, Properties::Scalar>;
+    using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
+
+public:
+    using EclThermalLawManager = ::Opm::EclThermalLawManager<Scalar, FluidSystem>;
+
+    using type = typename EclThermalLawManager::ThermalConductionLaw;
+};
+
+#if 0
     template<class TypeTag>
     struct Indices<TypeTag, TTag::CO2PTEcfvProblem>
     {
@@ -243,10 +321,23 @@ struct LocalLinearizerSplice<TypeTag, TTag::CO2PTEcfvProblem>
 template <class TypeTag>
 struct Problem<TypeTag, TTag::CO2PTEcfvProblem>
 {
-    using type = Opm::CO2PTProblem<TypeTag>;
-    //using type = Opm::FlowProblem<TypeTag>;
+    //using type = Opm::CO2PTProblem<TypeTag>;
+    using type = EbosProblem<TypeTag>;
 };
 
+template<class TypeTag>
+struct AquiferModel<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = EmptyModel<TypeTag>;
+};
+
+template<class TypeTag>
+struct WellModel<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = EmptyModel<TypeTag>;
+};
+template<class TypeTag>
+struct TracerModelDef<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = EmptyModel<TypeTag>;
+};
 
 
 template <class TypeTag>
@@ -289,18 +380,87 @@ private:
 public:
     using type = Opm::GenericOilGasFluidSystem<Scalar, num_comp>;
 };
-
-
+template<class TypeTag>
+struct EnableWriteAllSolutions<TypeTag, TTag::CO2PTEcfvProblem>{
+    static constexpr bool value = false;
+};
 template<class TypeTag>
 struct EnableMech<TypeTag, TTag::CO2PTEcfvProblem> {
     static constexpr bool value = false;
 };
-// disable all extensions supported by black oil model. this should not really be
-// necessary but it makes things a bit more explicit
+
+template<class TypeTag>
+struct OutputMode<TypeTag, TTag::CO2PTEcfvProblem> { inline static const std::string value = "all"; };
+
+template<class TypeTag>
+struct RestartWritingInterval<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 10; };
+
+template<class TypeTag>
+struct EnableDriftCompensation<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr bool value = false; };
+
+template<class TypeTag>
+struct NumPressurePointsEquil<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 100; };
+
+template<class TypeTag>
+struct ExpliciteRockCompaction<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr bool value = false; };
+
+template<class TypeTag>
+struct EnableEclOutput<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr bool value = false; };
+template<class TypeTag>
+struct EnableTerminalOutput<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr bool value = false; };
+
+
+
+template<class TypeTag>
+struct EnableDisgasInWater<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr bool value = false; };
+
+
+template<class TypeTag>
+struct EnableApiTracking<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+
+template<class TypeTag>
+struct EnableTemperature<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+
+template<class TypeTag>
+struct EnableSaltPrecipitation<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+template<class TypeTag>
+struct EnablePolymerMW<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+
+
+
 template<class TypeTag>
 struct EnablePolymer<TypeTag, TTag::CO2PTEcfvProblem> {
     static constexpr bool value = false;
 };
+
+template<class TypeTag>
+struct EclOutputDoublePrecision<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+
+
+template<class TypeTag>
+struct EnableDispersion<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+
+template<class TypeTag>
+struct EnableBrine<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+template<class TypeTag>
+struct EnableVapwat<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+
 template<class TypeTag>
 struct EnableSolvent<TypeTag, TTag::CO2PTEcfvProblem> {
     static constexpr bool value = false;
@@ -328,6 +488,31 @@ struct EnableThermalFluxBoundaries<TypeTag, TTag::CO2PTEcfvProblem> {
     static constexpr bool value = false;
 };
 
+template <class TypeTag>
+struct EpisodeLength<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = GetPropType<TypeTag, Scalar>;
+    static constexpr type value = 0.1 * 60. * 60.;
+};
+
+template <class TypeTag>
+struct Initialpressure<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = GetPropType<TypeTag, Scalar>;
+    static constexpr type value = 75.e5;
+};
+
+template <class TypeTag>
+struct DomainSizeZ<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = GetPropType<TypeTag, Scalar>;
+    static constexpr type value = 1.0;
+};
+
+template<class TypeTag>
+struct CellsX<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 30; };
+template<class TypeTag>
+struct CellsY<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
+// CellsZ is not needed, while to keep structuredgridvanguard.hh compile
+template<class TypeTag>
+struct CellsZ<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
 
 } // namespace Opm::Properties
 
