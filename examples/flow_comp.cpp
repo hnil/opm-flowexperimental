@@ -38,70 +38,6 @@
 // suggestTimeStep is taken from newton solver in problem.limitTimestep
 namespace Opm{
     template<typename TypeTag>
-    class EbosProblemFlow: public EbosProblem<TypeTag>{
-    public:
-        using Parent = EbosProblem<TypeTag>;
-        using Simulator = GetPropType<TypeTag, Properties::Simulator>;
-        //using TimeStepper =  AdaptiveTimeSteppingEbos<TypeTag>;
-        using Scalar = GetPropType<TypeTag, Properties::Scalar>;
-        EbosProblemFlow(Simulator& simulator): EbosProblem<TypeTag>(simulator){
-        }
-        void timeIntegration()
-        {
-            if (this->gridView().comm().rank() == 0){
-                std::cout << "----------------------Start TimeIntegration-------------------\n"
-                << std::flush;
-            }
-            Parent::timeIntegration();
-        }
-        void startEpisode(){
-            if (this->gridView().comm().rank() == 0){
-                std::cout << "----------------------Start Episode-------------------\n"
-                << std::flush;
-            }
-            Parent::startEpisode();
-        }
-        void endEpisode(){
-            Parent::endEpisode();
-            if (this->gridView().comm().rank() == 0){
-                std::cout << "----------------------End Episode-------------------\n"
-                << std::flush;
-            }
-        }
-        void startTimeStep(){
-            if (this->gridView().comm().rank() == 0){
-                std::cout << "----------------------Start TimeStep-------------------\n"
-                << std::flush;
-            }
-            Parent::startTimeStep();
-        }
-        void endTimeStep(){
-            Parent::endTimeStep();
-            if (this->gridView().comm().rank() == 0){
-                std::cout << "----------------------End TimeStep-------------------\n"
-                << std::flush;
-            }
-        }
-
-        void finishInit(){
-            Parent::finishInit();
-        }
-    private:
-        // using MonitorAuxType = typename MonitoringAuxModule<TypeTag>;
-        // MonitorAuxType monitorAux_;
-
-        //     Parent::finishInit();
-        //     this->simulator().model().addAuxiliaryModule(&monitorAux_);
-        // }
-    private:
-        //using MonitorAuxType = MonitoringAuxModule<TypeTag>;
-        //MonitorAuxType monitorAux_;
-
-        //private:
-        //std::unique_ptr<TimeStepper> adaptiveTimeStepping_;
-    };
-
-    template<typename TypeTag>
     class OutputAuxModule : public BaseAuxiliaryModule<TypeTag>
     {
 
@@ -171,7 +107,7 @@ struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
 // Set the problem class
 template<class TypeTag>
 struct Problem<TypeTag, TTag::EclFlowProblemEbos> {
-    using type = EbosProblemFlow<TypeTag>;
+    using type = EbosProblem<TypeTag>;
 };
 
 
@@ -259,7 +195,7 @@ namespace Opm::Properties {
    struct CO2PTEcfvProblem {
         //using InheritsFrom = std::tuple<CO2PTBaseProblem, FlashModel>;
        //missing OutPutBlackOil
-       using InheritsFrom = std::tuple<FlashModel, FlowModelParameters, VtkTracer, CpGridVanguard, EclTimeSteppingParameters>;
+       using InheritsFrom = std::tuple<FlashModel, FlowTimeSteppingParameters, FlowModelParameters, VtkTracer, CpGridVanguard, EclTimeSteppingParameters>;
        //using InheritsFrom = std::tuple<VtkTracer, OutputBlackOil, CpGridVanguard>;
    };
    }
@@ -386,7 +322,7 @@ template <class TypeTag>
 struct Problem<TypeTag, TTag::CO2PTEcfvProblem>
 {
     //using type = Opm::CO2PTProblem<TypeTag>;
-    using type = EbosProblem<TypeTag>;
+    using type = FlowProblem<TypeTag>;
 };
 
 template<class TypeTag>
@@ -582,6 +518,76 @@ struct InitialTimeStepSize<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr d
 template<class TypeTag>
 struct ProdCell<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
 
+template<class TypeTag>
+struct EnableDryRun<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr auto value = "auto";
+};
+// Do not merge parallel output files or warn about them
+template<class TypeTag>
+struct EnableLoggingFalloutWarning<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = false;
+};
+template<class TypeTag>
+struct OutputInterval<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr int value = 1;
+};
+
+// template<class TypeTag>
+// struct EnableTerminalOutput<TypeTag, TTag::CO2PTEcfvProblem> {
+//     static constexpr bool value = true;
+// };
+template<class TypeTag>
+struct EnableAdaptiveTimeStepping<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr bool value = true;
+};
+
+template <class TypeTag>
+struct OutputExtraConvergenceInfo<TypeTag, TTag::CO2PTEcfvProblem>
+{
+    static constexpr auto* value = "none";
+};
+
+template <class TypeTag>
+struct SaveStep<TypeTag, TTag::CO2PTEcfvProblem>
+{
+    static constexpr auto* value = "";
+};
+
+template <class TypeTag>
+struct SaveFile<TypeTag, TTag::CO2PTEcfvProblem>
+{
+    static constexpr auto* value = "";
+};
+
+template <class TypeTag>
+struct LoadFile<TypeTag, TTag::CO2PTEcfvProblem>
+{
+    static constexpr auto* value = "";
+};
+
+template <class TypeTag>
+struct LoadStep<TypeTag, TTag::CO2PTEcfvProblem>
+{
+    static constexpr int value = -1;
+};
+template<class TypeTag>
+struct NewtonMaxRelax<TypeTag, TTag::CO2PTEcfvProblem> {
+    using type = GetPropType<TypeTag, Scalar>;
+    static constexpr type value = 0.5;
+};
+template<class TypeTag>
+struct NewtonMaxIterations<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr int value = 20;
+};
+template<class TypeTag>
+struct NewtonMinIterations<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr int value = 2;
+};
+template<class TypeTag>
+struct NewtonRelaxationType<TypeTag, TTag::CO2PTEcfvProblem> {
+    static constexpr auto value = "dampen";
+};
+
 } // namespace Opm::Properties
 
 
@@ -592,6 +598,9 @@ int main(int argc, char** argv)
 {
     //using TypeTag = Opm::Properties::TTag::EclFlowProblemEbos;
     using TypeTag = Opm::Properties::TTag::CO2PTEcfvProblem;
-    Opm::registerEclTimeSteppingParameters<TypeTag>();
-    return Opm::start<TypeTag>(argc, argv);
+    //Opm::registerEclTimeSteppingParameters<TypeTag>();
+    //return Opm::start<TypeTag>(argc, argv);
+    auto mainObject = Opm::Main(argc, argv);
+    return mainObject.runStatic<TypeTag>();
+
 }

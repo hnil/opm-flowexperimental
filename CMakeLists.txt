@@ -290,6 +290,16 @@ opm_add_test(ebos_comp
 		$<TARGET_OBJECTS:moduleVersionExp>
 		)
 
+opm_add_test(flow_comp
+		ONLY_COMPILE
+		ALWAYS_ENABLE
+		DEPENDS opmsimulators
+		LIBRARIES opmsimulators
+		SOURCES
+		examples/flow_comp.cpp
+		$<TARGET_OBJECTS:moduleVersionExp>
+		)
+
 opm_add_test(ebos_comp_clean
 		ONLY_COMPILE
 		ALWAYS_ENABLE
