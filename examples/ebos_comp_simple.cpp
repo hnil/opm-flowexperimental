@@ -195,6 +195,7 @@ namespace Opm::Properties {
    struct CO2PTEcfvProblem {
         //using InheritsFrom = std::tuple<CO2PTBaseProblem, FlashModel>;
        //missing OutPutBlackOil
+       //using InheritsFrom = std::tuple<FlashModel, EbosTypeTag>
        using InheritsFrom = std::tuple<FlashModel, FlowModelParameters, VtkTracer, CpGridVanguard, EclTimeSteppingParameters>;
        //using InheritsFrom = std::tuple<VtkTracer, OutputBlackOil, CpGridVanguard>;
    };
@@ -203,11 +204,12 @@ namespace Opm::Properties {
     struct ExpliciteRockCompaction{
         using type = UndefinedProperty;
     };
+
 // template <class TypeTag>
 // struct NumComp<TypeTag, TTag::CO2PTEcfvProblem> {
 //     static constexpr int value = 3;
 // };
-#if 0
+#if 1
 template <class TypeTag>
 struct MaterialLaw<TypeTag, TTag::CO2PTEcfvProblem> {
 private:
@@ -233,7 +235,7 @@ public:
     //using type = typename EclMaterialLawManager::MaterialLaw;
 };
 #endif
-
+#if 0
     template<class TypeTag>
     struct MaterialLaw<TypeTag, TTag::CO2PTEcfvProblem>
     {
@@ -253,6 +255,7 @@ public:
 
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
+#endif
     template<class TypeTag>
 struct SolidEnergyLaw<TypeTag, TTag::CO2PTEcfvProblem>
 {
@@ -321,8 +324,8 @@ struct LocalLinearizerSplice<TypeTag, TTag::CO2PTEcfvProblem>
 template <class TypeTag>
 struct Problem<TypeTag, TTag::CO2PTEcfvProblem>
 {
-    //using type = Opm::CO2PTProblem<TypeTag>;
-    using type = EbosProblem<TypeTag>;
+    using type = Opm::CO2PTProblem<TypeTag>;
+    //using type = EbosProblem<TypeTag>;
 };
 
 template<class TypeTag>
@@ -515,7 +518,8 @@ template<class TypeTag>
 struct CellsZ<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
 template<class TypeTag>
 struct InitialTimeStepSize<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr double value = 24*60*60; };
-
+template<class TypeTag>
+struct ProdCell<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
 
 } // namespace Opm::Properties
 
