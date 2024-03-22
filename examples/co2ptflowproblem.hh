@@ -77,8 +77,8 @@ struct EpisodeLength { using type = UndefinedProperty;};
 template <class TypeTag, class MyTypeTag>
 struct Initialpressure { using type = UndefinedProperty;};
 
-template <class TypeTag, class MyTypeTag>
-struct ProdCell { using type = UndefinedProperty;};
+// template <class TypeTag, class MyTypeTag>
+// struct ProdCell { using type = UndefinedProperty;};
 
 
 template <class TypeTag, class MyTypeTag>

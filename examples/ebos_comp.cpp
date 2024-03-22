@@ -515,7 +515,8 @@ template<class TypeTag>
 struct CellsZ<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
 template<class TypeTag>
 struct InitialTimeStepSize<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr double value = 24*60*60; };
-
+template<class TypeTag>
+struct ProdCell<TypeTag, TTag::CO2PTEcfvProblem> { static constexpr int value = 1; };
 
 } // namespace Opm::Properties
 
