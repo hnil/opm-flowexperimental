@@ -45,6 +45,7 @@
 #include <memory>
 #include <tuple>
 #include <vector>
+#include <functional>
 
 namespace Opm {
 

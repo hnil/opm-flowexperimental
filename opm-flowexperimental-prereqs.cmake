@@ -38,7 +38,6 @@ set (opm-flowexperimental_DEPS
   # OPM dependency
   "opm-common REQUIRED"
   "opm-grid REQUIRED"
-  "opm-models REQUIRED"
   "opm-simulators REQUIRED"
   "Damaris 1.7"
   "HDF5"  

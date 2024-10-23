@@ -41,14 +41,14 @@ namespace Opm {
 namespace Properties {
 namespace TTag {
     struct EclFlowProblemTest {
-        using InheritsFrom = std::tuple<FlowProblem>;
+      using InheritsFrom = std::tuple<FlowProblem>;// should it be blackoil
     };
 }
-    template<class TypeTag>
-    struct SeparateSparseSourceTerms<TypeTag, TTag::EclFlowProblemTest> {
-        using type = bool;
-        static constexpr type value = false;
-    };
+    // template<class TypeTag>
+    // struct SeparateSparseSourceTerms<TypeTag, TTag::EclFlowProblemTest> {
+    //     using type = bool;
+    //     static constexpr type value = false;
+    // };
     // template<class TypeTag>
     // struct FluxDoubleSided<TypeTag, TTag::EclFlowProblemTest> {
     //     using type = bool;
@@ -105,6 +105,7 @@ namespace TTag {
 
 int main(int argc, char** argv)
 {
+    Opm::Parameters::SetDefault<Opm::Parameters::SeparateSparseSourceTerms>(false);
     OPM_TIMEBLOCK(fullSimulation);
     using TypeTag = Opm::Properties::TTag::EclFlowProblemTest;
     auto mainObject = Opm::Main(argc, argv);

@@ -2,7 +2,7 @@
 #define ECL_PROBLEM_OIL_SIMPLE_FAST_HPP
 namespace Opm{
     template<typename TypeTag>
-    class EclProblemSimpleFast: public FlowProblem<TypeTag>{
+    class EclProblemSimpleFast: public FlowProblemBlackoil<TypeTag>{
         using Simulator = GetPropType<TypeTag, Properties::Simulator>;
         using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
@@ -18,7 +18,7 @@ namespace Opm{
         using ThermalConductionLawParams = typename EclThermalLawManager::ThermalConductionLawParams;
         enum { numPhases = FluidSystem::numPhases };
     public:
-        EclProblemSimpleFast(Simulator& simulator): FlowProblem<TypeTag>(simulator){
+        EclProblemSimpleFast(Simulator& simulator): FlowProblemBlackoil<TypeTag>(simulator){
         }
         template <class FluidState>
         void updateRelperms(
