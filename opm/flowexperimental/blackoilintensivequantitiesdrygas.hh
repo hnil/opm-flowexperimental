@@ -62,13 +62,15 @@ class BlackOilIntensiveQuantitiesDryGas
     : public GetPropType<TypeTag, Properties::DiscIntensiveQuantities>
     , public GetPropType<TypeTag, Properties::FluxModule>::FluxIntensiveQuantities
     , public BlackOilDiffusionIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableDiffusion>() >
-    , public BlackOilSolventIntensiveQuantities<TypeTag>
-    , public BlackOilExtboIntensiveQuantities<TypeTag>
-    , public BlackOilPolymerIntensiveQuantities<TypeTag>
-    , public BlackOilFoamIntensiveQuantities<TypeTag>
-    , public BlackOilBrineIntensiveQuantities<TypeTag>
-    , public BlackOilEnergyIntensiveQuantities<TypeTag>
-    , public BlackOilMICPIntensiveQuantities<TypeTag>
+    , public BlackOilDispersionIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableDispersion>() >
+    , public BlackOilSolventIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableSolvent>()>
+    , public BlackOilExtboIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableExtbo>()>
+    , public BlackOilPolymerIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnablePolymer>()>
+    , public BlackOilFoamIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableFoam>()>
+    , public BlackOilBrineIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableBrine>()>
+    , public BlackOilEnergyIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableEnergy>()>
+    , public BlackOilMICPIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableMICP>()>
+    , public BlackOilConvectiveMixingIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableConvectiveMixing>()>
 {
     using ParentType = GetPropType<TypeTag, Properties::DiscIntensiveQuantities>;
     using Implementation = GetPropType<TypeTag, Properties::IntensiveQuantities>;
@@ -91,6 +93,7 @@ class BlackOilIntensiveQuantitiesDryGas
     enum { enableBrine = getPropValue<TypeTag, Properties::EnableBrine>() };
     //enum { enableEvaporation = getPropValue<TypeTag, Properties::EnableEvaporation>() };
     enum { enableVapwat = getPropValue<TypeTag, Properties::EnableVapwat>() };
+    enum { enableDisgasInWater = getPropValue<TypeTag, Properties::EnableDisgasInWater>() };
     enum { enableSaltPrecipitation = getPropValue<TypeTag, Properties::EnableSaltPrecipitation>() };
     enum { enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>() };
     enum { enableEnergy = getPropValue<TypeTag, Properties::EnableEnergy>() };
@@ -117,8 +120,8 @@ class BlackOilIntensiveQuantitiesDryGas
     using FluxIntensiveQuantities = typename FluxModule::FluxIntensiveQuantities;
     using DiffusionIntensiveQuantities = BlackOilDiffusionIntensiveQuantities<TypeTag, enableDiffusion>;
 
-    using DirectionalMobilityPtr = Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
 
+    using DirectionalMobilityPtr = Utility::CopyablePtr<DirectionalMobility<TypeTag>>;
 
 public:
     using FluidState = BlackOilFluidState<Evaluation,
@@ -145,12 +148,15 @@ public:
 
     BlackOilIntensiveQuantitiesDryGas()
     {
-        if (compositionSwitchEnabled) {
+        if constexpr (compositionSwitchEnabled) {
             fluidState_.setRs(0.0);
             fluidState_.setRv(0.0);
         }
-        if (enableVapwat) {
+        if constexpr (enableVapwat) {
             fluidState_.setRvw(0.0);
+        }
+        if constexpr (enableDisgasInWater) {
+            fluidState_.setRsw(0.0);
         }
     }
     BlackOilIntensiveQuantitiesDryGas(const BlackOilIntensiveQuantitiesDryGas& other) = default;
@@ -438,7 +444,7 @@ public:
 
 
 
-
+        if constexpr (enableVapwat) {
         if (priVars.primaryVarsMeaningWater() == PrimaryVariables::WaterMeaning::Rvw) {
             const auto& Rvw = priVars.makeEvaluation(Indices::waterSwitchIdx, timeIdx);
             fluidState_.setRvw(Rvw);
@@ -453,6 +459,7 @@ public:
                 fluidState_.setRvw(RvwSat);
                 saturated[waterPhaseIdx] = true;
             }
+        }
         }
 
         // typename FluidSystem::template ParameterCache<Evaluation> paramCache;
@@ -631,17 +638,21 @@ public:
     const Evaluation& mobility(unsigned phaseIdx) const
     { return mobility_[phaseIdx]; }
 
-    const Evaluation& mobility(unsigned phaseIdx, FaceDir::DirEnum facedir) const
+
+        const Evaluation& mobility(unsigned phaseIdx, FaceDir::DirEnum facedir) const
     {
         using Dir = FaceDir::DirEnum;
         if (dirMob_) {
-            switch(facedir) {
+            switch (facedir) {
+                case Dir::XMinus:
                 case Dir::XPlus:
-                    return dirMob_->mobilityX_[phaseIdx];
+                    return dirMob_->getArray(0)[phaseIdx];
+                case Dir::YMinus:
                 case Dir::YPlus:
-                    return dirMob_->mobilityY_[phaseIdx];
+                    return dirMob_->getArray(1)[phaseIdx];
+                case Dir::ZMinus:
                 case Dir::ZPlus:
-                    return dirMob_->mobilityZ_[phaseIdx];
+                    return dirMob_->getArray(2)[phaseIdx];
                 default:
                     throw std::runtime_error("Unexpected face direction");
             }
@@ -649,7 +660,6 @@ public:
         else {
             return mobility_[phaseIdx];
         }
-
     }
 
     void computeInverseFormationVolumeFactorAndViscosity(FluidState& fluidState,
@@ -748,15 +758,26 @@ public:
      */
     Scalar referencePorosity() const
     { return referencePorosity_; }
-
+    const Evaluation& permFactor() const
+    {
+        // if constexpr (enableMICP) {
+        //     return MICPIntQua::permFactor();
+        // }
+        // else if constexpr (enableSaltPrecipitation) {
+        //     return BrineIntQua::permFactor();
+        // }
+        //else {
+            throw std::logic_error("permFactor() called but salt precipitation or MICP are disabled");
+            // }
+    }
 private:
-    friend BlackOilSolventIntensiveQuantities<TypeTag>;
-    friend BlackOilExtboIntensiveQuantities<TypeTag>;
-    friend BlackOilPolymerIntensiveQuantities<TypeTag>;
-    friend BlackOilEnergyIntensiveQuantities<TypeTag>;
-    friend BlackOilFoamIntensiveQuantities<TypeTag>;
-    friend BlackOilBrineIntensiveQuantities<TypeTag>;
-    friend BlackOilMICPIntensiveQuantities<TypeTag>;
+    friend BlackOilSolventIntensiveQuantities<TypeTag, enableSolvent>;
+    friend BlackOilExtboIntensiveQuantities<TypeTag, enableExtbo>;
+    friend BlackOilPolymerIntensiveQuantities<TypeTag, enablePolymer>;
+    friend BlackOilEnergyIntensiveQuantities<TypeTag, enableEnergy>;
+    friend BlackOilFoamIntensiveQuantities<TypeTag, enableFoam>;
+    friend BlackOilBrineIntensiveQuantities<TypeTag, enableBrine>;
+    friend BlackOilMICPIntensiveQuantities<TypeTag, enableMICP>;
 
     Implementation& asImp_()
     { return *static_cast<Implementation*>(this); }

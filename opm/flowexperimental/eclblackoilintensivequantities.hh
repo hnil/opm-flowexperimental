@@ -62,13 +62,15 @@ class EclBlackOilIntensiveQuantities
     : public GetPropType<TypeTag, Properties::DiscIntensiveQuantities>
     , public GetPropType<TypeTag, Properties::FluxModule>::FluxIntensiveQuantities
     , public BlackOilDiffusionIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableDiffusion>() >
-    , public BlackOilSolventIntensiveQuantities<TypeTag>
-    , public BlackOilExtboIntensiveQuantities<TypeTag>
-    , public BlackOilPolymerIntensiveQuantities<TypeTag>
-    , public BlackOilFoamIntensiveQuantities<TypeTag>
-    , public BlackOilBrineIntensiveQuantities<TypeTag>
-    , public BlackOilEnergyIntensiveQuantities<TypeTag>
-    , public BlackOilMICPIntensiveQuantities<TypeTag>
+    , public BlackOilDispersionIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableDispersion>() >
+    , public BlackOilSolventIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableSolvent>()>
+    , public BlackOilExtboIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableExtbo>()>
+    , public BlackOilPolymerIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnablePolymer>()>
+    , public BlackOilFoamIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableFoam>()>
+    , public BlackOilBrineIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableBrine>()>
+    , public BlackOilEnergyIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableEnergy>()>
+    , public BlackOilMICPIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableMICP>()>
+    , public BlackOilConvectiveMixingIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableConvectiveMixing>()>
 {
     using ParentType = GetPropType<TypeTag, Properties::DiscIntensiveQuantities>;
     using Implementation = GetPropType<TypeTag, Properties::IntensiveQuantities>;
@@ -90,6 +92,8 @@ class EclBlackOilIntensiveQuantities
     enum { enableFoam = getPropValue<TypeTag, Properties::EnableFoam>() };
     enum { enableVapwat = getPropValue<TypeTag, Properties::EnableVapwat>() };
     enum { enableBrine = getPropValue<TypeTag, Properties::EnableBrine>() };
+    
+    enum { enableDisgasInWater = getPropValue<TypeTag, Properties::EnableDisgasInWater>() };
     //enum { enableEvaporation = getPropValue<TypeTag, Properties::EnableEvaporation>() };
     enum { enableSaltPrecipitation = getPropValue<TypeTag, Properties::EnableSaltPrecipitation>() };
     enum { enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>() };
@@ -116,8 +120,7 @@ class EclBlackOilIntensiveQuantities
     using DimMatrix = Dune::FieldMatrix<Scalar, dimWorld, dimWorld>;
     using FluxIntensiveQuantities = typename FluxModule::FluxIntensiveQuantities;
     using DiffusionIntensiveQuantities = BlackOilDiffusionIntensiveQuantities<TypeTag, enableDiffusion>;
-
-    using DirectionalMobilityPtr = Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
+    using DirectionalMobilityPtr = Utility::CopyablePtr<DirectionalMobility<TypeTag>>;
 
 
 public:
@@ -129,7 +132,7 @@ public:
                                           enableVapwat,
                                           enableBrine,
                                           enableSaltPrecipitation,
-                                          false,
+                                          enableDisgasInWater,
                                           Indices::numPhases>;
     using ScalarFluidState = BlackOilFluidState<Scalar,
                                                 FluidSystem,
@@ -139,18 +142,21 @@ public:
                                                 enableVapwat,
                                                 enableBrine,
                                                 enableSaltPrecipitation,
-                                                false,
+                                                enableDisgasInWater,
                                                 Indices::numPhases>;
     using Problem = GetPropType<TypeTag, Properties::Problem>;
 
     EclBlackOilIntensiveQuantities()
     {
-        if (compositionSwitchEnabled) {
+        if constexpr (compositionSwitchEnabled) {
             fluidState_.setRs(0.0);
             fluidState_.setRv(0.0);
         }
-        if (enableVapwat) {
+        if constexpr (enableVapwat) {
             fluidState_.setRvw(0.0);
+        }
+        if constexpr (enableDisgasInWater) {
+            fluidState_.setRsw(0.0);
         }
     }
     EclBlackOilIntensiveQuantities(const EclBlackOilIntensiveQuantities& other) = default;
@@ -461,6 +467,7 @@ public:
             viscosity[gasPhaseIdx] = mu;
         }
 
+        if constexpr (enableVapwat){
         if (priVars.primaryVarsMeaningWater() == PrimaryVariables::WaterMeaning::Rvw) {
             const auto& Rvw = priVars.makeEvaluation(Indices::waterSwitchIdx, timeIdx);
             fluidState_.setRvw(Rvw);
@@ -475,6 +482,7 @@ public:
                 fluidState_.setRvw(RvwSat);
                 saturated[waterPhaseIdx] = true;
             }
+        }
         }
 
 
@@ -674,13 +682,16 @@ public:
     {
         using Dir = FaceDir::DirEnum;
         if (dirMob_) {
-            switch(facedir) {
+            switch (facedir) {
+                case Dir::XMinus:
                 case Dir::XPlus:
-                    return dirMob_->mobilityX_[phaseIdx];
+                    return dirMob_->getArray(0)[phaseIdx];
+                case Dir::YMinus:
                 case Dir::YPlus:
-                    return dirMob_->mobilityY_[phaseIdx];
+                    return dirMob_->getArray(1)[phaseIdx];
+                case Dir::ZMinus:
                 case Dir::ZPlus:
-                    return dirMob_->mobilityZ_[phaseIdx];
+                    return dirMob_->getArray(2)[phaseIdx];
                 default:
                     throw std::runtime_error("Unexpected face direction");
             }
@@ -688,7 +699,6 @@ public:
         else {
             return mobility_[phaseIdx];
         }
-
     }
 
     void computeInverseFormationVolumeFactorAndViscosity(FluidState& fluidState,
@@ -775,14 +785,27 @@ public:
     Scalar referencePorosity() const
     { return referencePorosity_; }
 
+    const Evaluation& permFactor() const
+    {
+        // if constexpr (enableMICP) {
+        //     return MICPIntQua::permFactor();
+        // }
+        // else if constexpr (enableSaltPrecipitation) {
+        //     return BrineIntQua::permFactor();
+        // }
+        //else {
+            throw std::logic_error("permFactor() called but salt precipitation or MICP are disabled");
+            // }
+    }
+    
 private:
-    friend BlackOilSolventIntensiveQuantities<TypeTag>;
-    friend BlackOilExtboIntensiveQuantities<TypeTag>;
-    friend BlackOilPolymerIntensiveQuantities<TypeTag>;
-    friend BlackOilEnergyIntensiveQuantities<TypeTag>;
-    friend BlackOilFoamIntensiveQuantities<TypeTag>;
-    friend BlackOilBrineIntensiveQuantities<TypeTag>;
-    friend BlackOilMICPIntensiveQuantities<TypeTag>;
+    friend BlackOilSolventIntensiveQuantities<TypeTag, enableSolvent>;
+    friend BlackOilExtboIntensiveQuantities<TypeTag, enableExtbo>;
+    friend BlackOilPolymerIntensiveQuantities<TypeTag, enablePolymer>;
+    friend BlackOilEnergyIntensiveQuantities<TypeTag, enableEnergy>;
+    friend BlackOilFoamIntensiveQuantities<TypeTag, enableFoam>;
+    friend BlackOilBrineIntensiveQuantities<TypeTag, enableBrine>;
+    friend BlackOilMICPIntensiveQuantities<TypeTag, enableMICP>;
 
     Implementation& asImp_()
     { return *static_cast<Implementation*>(this); }

@@ -7,7 +7,8 @@ namespace Opm{
         using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using IntensiveQuantities = GetPropType<TypeTag, Properties::IntensiveQuantities>;
-        using DirectionalMobilityPtr = ::Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
+
+        using DirectionalMobilityPtr = Utility::CopyablePtr<DirectionalMobility<TypeTag>>;
         using MaterialLaw = GetPropType<TypeTag, Properties::MaterialLaw>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
         using SolidEnergyLaw = GetPropType<TypeTag, Properties::SolidEnergyLaw>;
@@ -44,7 +45,11 @@ namespace Opm{
         //     return this->initialFluidStates_[globalDofIdx].temperature(/*phaseIdx=*/0);
         // }
     public:
-        bool updateExplicitQuantities_(){
+      void updateExplicitQuantities_(int episodeIdx, int timeStepSize, const bool first_step_after_restart) override
+      {
+	   this->updateExplicitQuantities_(first_step_after_restart);
+      }
+      void updateExplicitQuantities_(const bool first_step_after_restart){
             OPM_TIMEBLOCK(updateExpliciteQuantitiesSimple);
             const auto& primaryVars = this->model().solution(/*timeIdx*/0);
             const auto& problem = this->simulator().problem();
@@ -101,7 +106,7 @@ namespace Opm{
                     updateMaxPolymerAdsorption_(dofIdx,iq);
                 }
             }
-            return any_changed;
+            //return any_changed;
         }
         private:
         friend FlowProblem<TypeTag>;

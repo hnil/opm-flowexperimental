@@ -64,13 +64,15 @@ class BlackOilIntensiveQuantitiesSimple
     : public GetPropType<TypeTag, Properties::DiscIntensiveQuantities>
     , public GetPropType<TypeTag, Properties::FluxModule>::FluxIntensiveQuantities
     , public BlackOilDiffusionIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableDiffusion>() >
-    , public BlackOilSolventIntensiveQuantities<TypeTag>
-    , public BlackOilExtboIntensiveQuantities<TypeTag>
-    , public BlackOilPolymerIntensiveQuantities<TypeTag>
-    , public BlackOilFoamIntensiveQuantities<TypeTag>
-    , public BlackOilBrineIntensiveQuantities<TypeTag>
-    , public BlackOilEnergyIntensiveQuantitiesFV<TypeTag>
-    , public BlackOilMICPIntensiveQuantities<TypeTag>
+    , public BlackOilDispersionIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableDispersion>() >
+    , public BlackOilSolventIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableSolvent>()>
+    , public BlackOilExtboIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableExtbo>()>
+    , public BlackOilPolymerIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnablePolymer>()>
+    , public BlackOilFoamIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableFoam>()>
+    , public BlackOilBrineIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableBrine>()>
+    , public BlackOilEnergyIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableEnergy>()>
+    , public BlackOilMICPIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableMICP>()>
+    , public BlackOilConvectiveMixingIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableConvectiveMixing>()>
 {
     using ParentType = GetPropType<TypeTag, Properties::DiscIntensiveQuantities>;
     using Implementation = GetPropType<TypeTag, Properties::IntensiveQuantities>;
@@ -118,7 +120,7 @@ class BlackOilIntensiveQuantitiesSimple
     using FluxIntensiveQuantities = typename FluxModule::FluxIntensiveQuantities;
     using DiffusionIntensiveQuantities = BlackOilDiffusionIntensiveQuantities<TypeTag, enableDiffusion>;
 
-    using DirectionalMobilityPtr = Opm::Utility::CopyablePtr<DirectionalMobility<TypeTag, Evaluation>>;
+    using DirectionalMobilityPtr = Utility::CopyablePtr<DirectionalMobility<TypeTag>>;
 
 
 public:
@@ -146,11 +148,11 @@ public:
 
     BlackOilIntensiveQuantitiesSimple()
     {
-        if (compositionSwitchEnabled) {
+        if constexpr(compositionSwitchEnabled) {
             fluidState_.setRs(0.0);
             fluidState_.setRv(0.0);
         }
-        if (enableVapwat) {
+        if constexpr (enableVapwat) {
             fluidState_.setRvw(0.0);
         }
     }
@@ -189,7 +191,7 @@ public:
             ? problem.maxGasDissolutionFactor(timeIdx, globalSpaceIdx)
             : 0.0;
 
-        asImp_().updateTemperature_(problem, priVars, globalSpaceIdx, timeIdx);
+        //asImp_().updateTemperature_(problem, priVars, globalSpaceIdx, timeIdx);
 
         unsigned pvtRegionIdx = priVars.pvtRegionIndex();
         fluidState_.setPvtRegionIndex(pvtRegionIdx);
@@ -278,6 +280,7 @@ public:
 
         // take the meaning of the switching primary variable into account for the gas
         // and oil phase compositions
+        if constexpr (compositionSwitchEnabled){
         if (priVars.primaryVarsMeaningGas() == PrimaryVariables::GasMeaning::Rs) {
             const auto& Rs = priVars.makeEvaluation(Indices::compositionSwitchIdx, timeIdx);
             fluidState_.setRs(Rs);
@@ -291,10 +294,11 @@ public:
                                                             SoMax);
                 fluidState_.setRs(min(RsMax, RsSat));
             }
-            else if constexpr (compositionSwitchEnabled)
+            else {//(compositionSwitchEnabled)
                 fluidState_.setRs(0.0);
+            }
         }
-
+        
         if (priVars.primaryVarsMeaningGas() == PrimaryVariables::GasMeaning::Rv) {
             const auto& Rv = priVars.makeEvaluation(Indices::compositionSwitchIdx, timeIdx);
             fluidState_.setRv(Rv);
@@ -309,10 +313,12 @@ public:
                                                             SoMax);
                 fluidState_.setRv(min(RvMax, RvSat));
             }
-            else if constexpr (compositionSwitchEnabled)
+            else {//(compositionSwitchEnabled)
                 fluidState_.setRv(0.0);
+            }
         }
-
+        }
+        if constexpr (enableVapwat) {
         if (priVars.primaryVarsMeaningWater() == PrimaryVariables::WaterMeaning::Rvw) {
             const auto& Rvw = priVars.makeEvaluation(Indices::waterSwitchIdx, timeIdx);
             fluidState_.setRvw(Rvw);
@@ -325,6 +331,7 @@ public:
                                                             pvtRegionIdx);
                 fluidState_.setRvw(RvwSat);
             }
+        }
         }
 
         // typename FluidSystem::template ParameterCache<Evaluation> paramCache;
@@ -475,27 +482,6 @@ public:
     const Evaluation& mobility(unsigned phaseIdx) const
     { return mobility_[phaseIdx]; }
 
-    const Evaluation& mobility(unsigned phaseIdx, FaceDir::DirEnum facedir) const
-    {
-        using Dir = FaceDir::DirEnum;
-        if (dirMob_) {
-            switch(facedir) {
-                case Dir::XPlus:
-                    return dirMob_->mobilityX_[phaseIdx];
-                case Dir::YPlus:
-                    return dirMob_->mobilityY_[phaseIdx];
-                case Dir::ZPlus:
-                    return dirMob_->mobilityZ_[phaseIdx];
-                default:
-                    throw std::runtime_error("Unexpected face direction");
-            }
-        }
-        else {
-            return mobility_[phaseIdx];
-        }
-
-    }
-
     void computeInverseFormationVolumeFactorAndViscosity(FluidState& fluidState,
                                                          unsigned phaseIdx,
                                                          unsigned pvtRegionIdx,
@@ -510,9 +496,9 @@ public:
             OPM_TIMEBLOCK_LOCAL(UpdateViscosity);
         typename FluidSystem::template ParameterCache<Evaluation> paramCache;
         paramCache.setRegionIndex(pvtRegionIdx);
-        if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
-            paramCache.setMaxOilSat(SoMax);
-        }
+        // if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
+        //     paramCache.setMaxOilSat(SoMax);
+        // }
         paramCache.updateAll(fluidState_);
 
         const auto& mu = FluidSystem::viscosity(fluidState, paramCache, phaseIdx);
@@ -593,14 +579,49 @@ public:
     Scalar referencePorosity() const
     { return referencePorosity_; }
 
+    const Evaluation& mobility(unsigned phaseIdx, FaceDir::DirEnum facedir) const
+    {
+        using Dir = FaceDir::DirEnum;
+        if (dirMob_) {
+            switch (facedir) {
+                case Dir::XMinus:
+                case Dir::XPlus:
+                    return dirMob_->getArray(0)[phaseIdx];
+                case Dir::YMinus:
+                case Dir::YPlus:
+                    return dirMob_->getArray(1)[phaseIdx];
+                case Dir::ZMinus:
+                case Dir::ZPlus:
+                    return dirMob_->getArray(2)[phaseIdx];
+                default:
+                    throw std::runtime_error("Unexpected face direction");
+            }
+        }
+        else {
+            return mobility_[phaseIdx];
+        }
+    }
+    const Evaluation& permFactor() const
+    {
+        // if constexpr (enableMICP) {
+        //     return MICPIntQua::permFactor();
+        // }
+        // else if constexpr (enableSaltPrecipitation) {
+        //     return BrineIntQua::permFactor();
+        // }
+        //else {
+            throw std::logic_error("permFactor() called but salt precipitation or MICP are disabled");
+            // }
+   } 
+    
 private:
-    friend BlackOilSolventIntensiveQuantities<TypeTag>;
-    friend BlackOilExtboIntensiveQuantities<TypeTag>;
-    friend BlackOilPolymerIntensiveQuantities<TypeTag>;
-    friend BlackOilEnergyIntensiveQuantitiesFV<TypeTag>;
-    friend BlackOilFoamIntensiveQuantities<TypeTag>;
-    friend BlackOilBrineIntensiveQuantities<TypeTag>;
-    friend BlackOilMICPIntensiveQuantities<TypeTag>;
+    friend BlackOilSolventIntensiveQuantities<TypeTag, enableSolvent>;
+    friend BlackOilExtboIntensiveQuantities<TypeTag, enableExtbo>;
+    friend BlackOilPolymerIntensiveQuantities<TypeTag, enablePolymer>;
+    friend BlackOilEnergyIntensiveQuantities<TypeTag, enableEnergy>;
+    friend BlackOilFoamIntensiveQuantities<TypeTag, enableFoam>;
+    friend BlackOilBrineIntensiveQuantities<TypeTag, enableBrine>;
+    friend BlackOilMICPIntensiveQuantities<TypeTag, enableMICP>;
 
     Implementation& asImp_()
     { return *static_cast<Implementation*>(this); }
