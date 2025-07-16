@@ -298,6 +298,9 @@ public:
             serializer(mat);
         }
     }
+    const EclHysteresisConfig& hysteresisConfig() const{return *hysteresisConfig_;}
+private:    
+    std::shared_ptr<EclHysteresisConfig> hysteresisConfig_;
 private:
     void readGlobalEpsOptions_(const EclipseState& eclState);
 
@@ -377,7 +380,7 @@ private:
                                std::shared_ptr<GasWaterTwoPhaseHystParams> gasWaterParams);
 
     bool enableEndPointScaling_;
-    std::shared_ptr<EclHysteresisConfig> hysteresisConfig_;
+    
 
     std::shared_ptr<EclEpsConfig> oilWaterEclEpsConfig_;
     std::vector<EclEpsScalingPointsInfo<Scalar>> unscaledEpsInfo_;
