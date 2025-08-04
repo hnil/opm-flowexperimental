@@ -367,7 +367,7 @@ public:
                 }
 
                 RsSat = enableExtbo ? asImp_().rs() : RsSat;
-                if(RsMax < RsSat_max){
+                if(RsMax < RsSat_max || RsSat < RsSat_max){
                     saturated[oilPhaseIdx] = false;
                 }
                 //RsSat = enableExtbo ? asImp_().rs() :FluidSystem::saturatedDissolutionFactor(fluidState_,oilPhaseIdx, pvtRegionIdx,SoMax);
@@ -429,7 +429,7 @@ public:
                 }
 
                 RvSat = enableExtbo ? asImp_().rv() : RvSat;
-                if(RvSat < RvSat_max){
+                if(RvSat < RvSat_max || RvMax < RvSat_max){
                     saturated[gasPhaseIdx] = false;
                 }
                 // hack do not undersand the difference

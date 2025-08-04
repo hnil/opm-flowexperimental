@@ -18,12 +18,14 @@
 */
 #include "config.h"
 
-#if HAVE_TRACY
-#include "tracy/Tracy.hpp"
-#include "tracy/TracyC.h"
-#define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
-#define OPM_TIMEBLOCK_LOCAL(blockname) ZoneNamedN(blockname, #blockname, true);
-#endif
+//#if HAVE_TRACY
+  #define DETAILED_PROFILING 1
+//  #define TRACY_ENABLE 1
+//  #include "tracy/Tracy.hpp"
+//  #include "tracy/TracyC.h"
+//#define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
+//  #define OPM_TIMEBLOCK_LOCAL(blockname) ZoneNamedN(blockname, #blockname, true);
+//#endif
 
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>

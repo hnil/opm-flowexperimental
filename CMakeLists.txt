@@ -252,6 +252,87 @@ opm_add_test(flow_blackoil_fast_wateroil
 target_sources(flow_blackoil_fast_wateroil
 	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
 
+opm_add_test(test_propertyevaluation
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/test_propertyevaluation.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+target_sources(test_propertyevaluation
+	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+opm_add_test(test_eclpropertyevaluation
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/test_propertyevaluation.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+target_sources(test_eclpropertyevaluation
+	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+opm_add_test(test_eclpropertyevaluation_lowlevel
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/test_eclpropertyevaluation_lowlevel.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+target_sources(test_eclpropertyevaluation_lowlevel
+	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+opm_add_test(test_relpermevaluation
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/test_relpermevaluation.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+target_sources(test_propertyevaluation
+	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+
+
+opm_add_test(test_eclrelpermevaluation
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/test_eclpropertyevaluation.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+target_sources(test_eclrelpermevaluation
+	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+opm_add_test(test_eclrelpermevaluation_lowlevel
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/test_eclrelpermevaluation_lowlevel.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+target_sources(test_eclrelpermevaluation_lowlevel
+	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+
 
 set(HAVE_TRACY 0)
 if(USE_TRACY)
@@ -263,6 +344,12 @@ if(USE_TRACY)
 	target_link_libraries(flow_blackoil_nocache Tracy::TracyClient)
 	target_link_libraries(flow_blackoil_fast_oilgas Tracy::TracyClient)
 	target_link_libraries(flow_blackoil_fast_wateroil Tracy::TracyClient)
+	target_link_libraries(test_propertyevaluation Tracy::TracyClient)
+	target_link_libraries(test_eclpropertyevaluation Tracy::TracyClient)
+	target_link_libraries(test_eclpropertyevaluation_lowlevel Tracy::TracyClient)
+	target_link_libraries(test_relpermevaluation Tracy::TracyClient)
+	target_link_libraries(test_eclrelpermevaluation Tracy::TracyClient)
+	target_link_libraries(test_eclrelpermevaluation_lowlevel Tracy::TracyClient)
 endif()
 
 if(USE_EASYPROFILER)
