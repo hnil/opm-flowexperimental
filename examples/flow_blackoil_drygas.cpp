@@ -65,10 +65,10 @@ namespace TTag {
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
-                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
+                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx,false,true>;
 
     public:
-        using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
+      using EclMaterialLawManager = ::Opm::EclMaterialLaw::Manager<Traits>;
 
         using type = typename EclMaterialLawManager::MaterialLaw;
     };

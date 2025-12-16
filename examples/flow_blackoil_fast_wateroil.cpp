@@ -17,12 +17,12 @@
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "config.h"
-#if HAVE_TRACY
-#include "tracy/Tracy.hpp"
-#include "tracy/TracyC.h"
-#define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
-#define OPM_TIMEBLOCK_LOCAL(blockname);// ZoneNamedN(blockname, #blockname, true);
-#endif
+// #if HAVE_TRACY
+// #include "tracy/Tracy.hpp"
+// #include "tracy/TracyC.h"
+// #define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
+// #define OPM_TIMEBLOCK_LOCAL(blockname);// ZoneNamedN(blockname, #blockname, true);
+// #endif
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
@@ -61,6 +61,9 @@ namespace TTag {
     struct Problem<TypeTag, TTag::EclFlowProblemTest> {
         using type = EclProblemSimpleFast<TypeTag>;
     };
+  template<class TypeTag>
+    struct EnergyModuleType<TypeTag, TTag::EclFlowProblemTest>
+    { static constexpr EnergyModules value = EnergyModules::NoTemperature; };
 
     template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
@@ -75,14 +78,16 @@ namespace TTag {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-
+      static constexpr bool enableHysteresis = false;
+      static constexpr bool enableEndpointScaling = true;
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
-                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
+                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx,
+                                                enableHysteresis, enableEndpointScaling>;
 
     public:
-        using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits,2>;
+      using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits,2>;
         //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
 
         using type = typename EclMaterialLawManager::MaterialLaw;
@@ -96,17 +101,18 @@ namespace TTag {
         // messages unfortunately are *really* confusing and not really helpful.
         using BaseTypeTag = TTag::FlowProblem;
         using FluidSystem = GetPropType<BaseTypeTag, Properties::FluidSystem>;
-
+      static constexpr EnergyModules energyModuleType = getPropValue<TypeTag, Properties::EnergyModuleType>();
+      static constexpr int numEnergyVars = energyModuleType == EnergyModules::FullyImplicitThermal;
     public:
         typedef BlackOilTwoPhaseIndices<getPropValue<TypeTag, Properties::EnableSolvent>(),
                                         getPropValue<TypeTag, Properties::EnableExtbo>(),
                                         getPropValue<TypeTag, Properties::EnablePolymer>(),
-                                        getPropValue<TypeTag, Properties::EnableEnergy>(),
+                                        numEnergyVars,
                                         getPropValue<TypeTag, Properties::EnableFoam>(),
                                         getPropValue<TypeTag, Properties::EnableBrine>(),
                                         /*PVOffset=*/0,
                                         /*disabledCompIdx=*/FluidSystem::gasCompIdx,
-                                        getPropValue<TypeTag, Properties::EnableMICP>()> type;
+                                        getPropValue<TypeTag, Properties::EnableBioeffects>()> type;
     };
 
 

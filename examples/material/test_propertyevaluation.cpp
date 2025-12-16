@@ -111,10 +111,12 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     static constexpr int gasPhaseIdx = FluidSystem::gasPhaseIdx;
     static constexpr int oilPhaseIdx = FluidSystem::oilPhaseIdx;
     static constexpr int waterPhaseIdx = FluidSystem::waterPhaseIdx;
+      static constexpr bool enableHysteresis = false;
+    static constexpr bool enableEndpointScaling = true;
     typedef Opm::ThreePhaseMaterialTraits<Scalar,
                                           /*wettingPhaseIdx=*/waterPhaseIdx,
                                           /*nonWettingPhaseIdx=*/oilPhaseIdx,
-                                          /*gasPhaseIdx=*/gasPhaseIdx> MaterialTraits;
+                                          /*gasPhaseIdx=*/gasPhaseIdx, enableHysteresis, enableEndpointScaling> MaterialTraits;
 
     static constexpr int gasCompIdx = FluidSystem::gasCompIdx;
     static constexpr int oilCompIdx = FluidSystem::oilCompIdx;
@@ -133,7 +135,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     const auto& eclGrid = eclState.getInputGrid();
     //size_t nc = eclGrid.getCartesianSize();
     size_t nc = eclGrid.getNumActive();
-    typedef Opm::EclMaterialLawManager<MaterialTraits> MaterialLawManager;
+    typedef Opm::EclMaterialLaw::Manager<MaterialTraits> MaterialLawManager;
     MaterialLawManager  materialLawManager;
     typedef typename MaterialLawManager::MaterialLaw MaterialLaw;
     materialLawManager.initFromState(eclState);

@@ -82,7 +82,7 @@ namespace Opm{
 
         template <class GridSubDomain>
         void invalidateAndUpdateIntensiveQuantities(unsigned timeIdx, const GridSubDomain& gridSubDomain) const{
-            OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantitiesSubdomain);
+          OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantitiesSubdomain,Opm::Subsystem::Props);
 //            std::cout << "----------------------Update quantitiesSubdomain-------------------\n";
 //                      << std::flush;
 //            Parent::invalidateAndUpdateIntensiveQuantities(timeIdx);
@@ -146,7 +146,7 @@ namespace Opm{
     }
 
         const IntensiveQuantities& intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
-            OPM_TIMEBLOCK_LOCAL(intensiveQuantities);
+          OPM_TIMEBLOCK_LOCAL(intensiveQuantities,Opm::Subsystem::Props);
             //const auto& primaryVars = this->solution(timeIdx);
             //const auto& problem = this->simulator_.problem();
             const auto intquant = this->cachedIntensiveQuantities(globalIdx, timeIdx);

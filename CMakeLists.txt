@@ -312,7 +312,7 @@ opm_add_test(test_eclrelpermevaluation
 	DEPENDS opmsimulators
 	LIBRARIES opmsimulators
 	SOURCES
-	examples/material/test_eclpropertyevaluation.cpp
+	examples/material/test_eclrelpermevaluation.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
 
@@ -331,6 +331,20 @@ opm_add_test(test_eclrelpermevaluation_lowlevel
 
 target_sources(test_eclrelpermevaluation_lowlevel
 	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
+opm_add_test(test_eclrelpermevaluation_flowdiag
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/test_eclrelpermevaluation_flowdiag.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+target_sources(test_eclrelpermevaluation_flowdiag
+	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+
 
 
 

@@ -28,7 +28,7 @@ namespace Opm{
             FluidState &fluidState,
             unsigned globalSpaceIdx) const
         {
-            OPM_TIMEBLOCK_LOCAL(updateRelperms);
+          OPM_TIMEBLOCK_LOCAL(updateRelperms,Opm::Subsystem::Props);
             {
                 // calculate relative permeabilities. note that we store the result into the
                 // mobility_ class attribute. the division by the phase viscosity happens later.
@@ -89,7 +89,7 @@ namespace Opm{
                 // the derivatives may have change
                 any_changed = changed || any_changed;
                 if(changed){
-                    OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantityHyst);
+                  OPM_TIMEBLOCK_LOCAL(updateIntensiveQuantityHyst,Opm::Subsystem::Props);
                     const auto& primaryVar = primaryVars[dofIdx];
                     //auto& intquant = this->intensiveQuantityCache_[timeIdx][dofIdx];
                     // to get it working with and without cached normally &iq = iq

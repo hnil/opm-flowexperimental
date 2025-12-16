@@ -213,9 +213,9 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
         auto gasOilParams = std::make_shared<GasOilTwoPhaseHystParams>();
         auto oilWaterParams = std::make_shared<OilWaterTwoPhaseHystParams>();
         auto gasWaterParams = std::make_shared<GasWaterTwoPhaseHystParams>();
-        gasOilParams->setConfig(hysteresisConfig_);
-        oilWaterParams->setConfig(hysteresisConfig_);
-        gasWaterParams->setConfig(hysteresisConfig_);
+        gasOilParams->setConfig(*hysteresisConfig_);
+        oilWaterParams->setConfig(*hysteresisConfig_);
+        gasWaterParams->setConfig(*hysteresisConfig_);
 
         auto [gasOilScaledInfo, gasOilScaledPoint] =
             readScaledPoints_(*gasOilConfig,
@@ -241,7 +241,7 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 
         if (hasGas && hasOil) {
             GasOilEpsTwoPhaseParams gasOilDrainParams;
-            gasOilDrainParams.setConfig(gasOilConfig);
+            gasOilDrainParams.setConfig(*gasOilConfig);
             gasOilDrainParams.setUnscaledPoints(gasOilUnscaledPointsVector_[satRegionIdx]);
             gasOilDrainParams.setScaledPoints(gasOilScaledPoint);
             gasOilDrainParams.setEffectiveLawParams(gasOilEffectiveParamVector_[satRegionIdx]);
@@ -254,7 +254,7 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 
         if (hasOil && hasWater) {
             OilWaterEpsTwoPhaseParams oilWaterDrainParams;
-            oilWaterDrainParams.setConfig(oilWaterConfig);
+            oilWaterDrainParams.setConfig(*oilWaterConfig);
             oilWaterDrainParams.setUnscaledPoints(oilWaterUnscaledPointsVector_[satRegionIdx]);
             oilWaterDrainParams.setScaledPoints(oilWaterScaledEpsPointDrainage);
             oilWaterDrainParams.setEffectiveLawParams(oilWaterEffectiveParamVector_[satRegionIdx]);
@@ -267,7 +267,7 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 
         if (hasGas && hasWater && !hasOil) {
             GasWaterEpsTwoPhaseParams gasWaterDrainParams;
-            gasWaterDrainParams.setConfig(gasWaterConfig);
+            gasWaterDrainParams.setConfig(*gasWaterConfig);
             gasWaterDrainParams.setUnscaledPoints(gasWaterUnscaledPointsVector_[satRegionIdx]);
             gasWaterDrainParams.setScaledPoints(gasWaterScaledPoint);
             gasWaterDrainParams.setEffectiveLawParams(gasWaterEffectiveParamVector_[satRegionIdx]);
@@ -303,7 +303,7 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
             unsigned imbRegionIdx = imbnumRegionArray_[elemIdx];
             if (hasGas && hasOil) {
                 GasOilEpsTwoPhaseParams gasOilImbParamsHyst;
-                gasOilImbParamsHyst.setConfig(gasOilConfig);
+                gasOilImbParamsHyst.setConfig(*gasOilConfig);
                 gasOilImbParamsHyst.setUnscaledPoints(gasOilUnscaledPointsVector_[imbRegionIdx]);
                 gasOilImbParamsHyst.setScaledPoints(gasOilScaledImbPoint);
                 gasOilImbParamsHyst.setEffectiveLawParams(gasOilEffectiveParamVector_[imbRegionIdx]);
@@ -316,7 +316,7 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 
             if (hasOil && hasWater) {
                 OilWaterEpsTwoPhaseParams oilWaterImbParamsHyst;
-                oilWaterImbParamsHyst.setConfig(oilWaterConfig);
+                oilWaterImbParamsHyst.setConfig(*oilWaterConfig);
                 oilWaterImbParamsHyst.setUnscaledPoints(oilWaterUnscaledPointsVector_[imbRegionIdx]);
                 oilWaterImbParamsHyst.setScaledPoints(oilWaterScaledImbPoint);
                 oilWaterImbParamsHyst.setEffectiveLawParams(oilWaterEffectiveParamVector_[imbRegionIdx]);
@@ -329,7 +329,7 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 
             if (hasGas && hasWater && !hasOil) {
                 GasWaterEpsTwoPhaseParams gasWaterImbParamsHyst;
-                gasWaterImbParamsHyst.setConfig(gasWaterConfig);
+                gasWaterImbParamsHyst.setConfig(*gasWaterConfig);
                 gasWaterImbParamsHyst.setUnscaledPoints(gasWaterUnscaledPointsVector_[imbRegionIdx]);
                 gasWaterImbParamsHyst.setScaledPoints(gasWaterScaledImbPoint);
                 gasWaterImbParamsHyst.setEffectiveLawParams(gasWaterEffectiveParamVector_[imbRegionIdx]);
@@ -1067,8 +1067,8 @@ initThreePhaseParams_(const EclipseState& /* eclState */,
 
 }
 
-template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2>,3>;
-template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2>,2>;
+template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2,false,true>,3>;
+template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2,false,true>,2>;
 //template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<float,0,1,2>>;
 
 } // namespace Opm

@@ -116,10 +116,13 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     static constexpr int gasPhaseIdx = FluidSystem::gasPhaseIdx;
     static constexpr int oilPhaseIdx = FluidSystem::oilPhaseIdx;
     static constexpr int waterPhaseIdx = FluidSystem::waterPhaseIdx;
+                  static constexpr bool enableHysteresis = false;
+    static constexpr bool enableEndpointScaling = true;
     typedef Opm::ThreePhaseMaterialTraits<Scalar,
                                           /*wettingPhaseIdx=*/waterPhaseIdx,
                                           /*nonWettingPhaseIdx=*/oilPhaseIdx,
-                                          /*gasPhaseIdx=*/gasPhaseIdx> MaterialTraits;
+                                          /*gasPhaseIdx=*/gasPhaseIdx,
+                                          enableHysteresis, enableEndpointScaling> MaterialTraits;
 
     static constexpr int gasCompIdx = FluidSystem::gasCompIdx;
     static constexpr int oilCompIdx = FluidSystem::oilCompIdx;
@@ -138,7 +141,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     const auto& eclGrid = eclState.getInputGrid();
     //size_t nc = eclGrid.getCartesianSize();
     size_t nc = eclGrid.getNumActive();
-    typedef Opm::EclMaterialLawManager<MaterialTraits> MaterialLawManager;
+    typedef Opm::EclMaterialLaw::Manager<MaterialTraits> MaterialLawManager;
     MaterialLawManager  materialLawManager;
     typedef typename MaterialLawManager::MaterialLaw MaterialLaw;
     materialLawManager.initFromState(eclState);
@@ -168,8 +171,10 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     Opm::time_point start;
     start = Opm::TimeService::now();
     const auto& materialParams = materialLawManager.materialLawParams(0).template getRealParams<Opm::EclMultiplexerApproach::Default>();
-    const auto& gasoilparams =materialParams.gasOilParams().drainageParams().effectiveLawParams().template getRealParams<Opm::SatCurveMultiplexerApproach::PiecewiseLinear>();
-    const auto& oilwaterparams =materialParams.oilWaterParams().drainageParams().effectiveLawParams().template getRealParams<Opm::SatCurveMultiplexerApproach::PiecewiseLinear>();
+    // const auto& gasoilparams =materialParams.gasOilParams().drainageParams().effectiveLawParams().template getRealParams<Opm::SatCurveMultiplexerApproach::PiecewiseLinear>();
+    // const auto& oilwaterparams =materialParams.oilWaterParams().drainageParams().effectiveLawParams().template getRealParams<Opm::SatCurveMultiplexerApproach::PiecewiseLinear>();
+        const auto& gasoilparams =materialParams.gasOilParams().effectiveLawParams().template getRealParams<Opm::SatCurveMultiplexerApproach::PiecewiseLinear>();
+    const auto& oilwaterparams =materialParams.oilWaterParams().effectiveLawParams().template getRealParams<Opm::SatCurveMultiplexerApproach::PiecewiseLinear>();
     Scalar Swco = materialParams.Swl();
     // const auto& waterpvt = FluidSystem::waterPvt().template getRealPvt<Opm::WaterPvtApproach::ConstantCompressibilityWater>();
     // const auto& oilpvt = FluidSystem::oilPvt().template getRealPvt<Opm::OilPvtApproach::LiveOil>();
@@ -237,6 +242,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
             //MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState);
             //MaterialLaw::DefaultMaterial::relativePermeabilitiesNew(mobility, materialParams, fluidState);
             //MaterialLaw::DefaultMaterial::relativePermeabilitiesNew(mobility, Swco, oilwaterparams, gasoilparams, fluidState);
+            //Opm::EclDefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilitiesSimple(mobility, materialParams, fluidState);
             Opm::EclDefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilities(mobility, Swco, oilwaterparams, gasoilparams, fluidState);
         }
     }

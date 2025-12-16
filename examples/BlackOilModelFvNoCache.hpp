@@ -13,7 +13,7 @@ namespace Opm{
         }
 
         IntensiveQuantities intensiveQuantities(unsigned globalIdx, unsigned timeIdx) const{
-            OPM_TIMEBLOCK_LOCAL(intensiveQuantitiesNoCache);
+          OPM_TIMEBLOCK_LOCAL(intensiveQuantitiesNoCache,Opm::Subsystem::Props);
             const auto& primaryVar = this->solution(timeIdx)[globalIdx];
             const auto& problem = this->simulator_.problem();
             //IntensiveQuantities* intQuants = &(this->intensiveQuantityCache_[timeIdx][globalIdx]);

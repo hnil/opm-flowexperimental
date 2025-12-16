@@ -17,9 +17,8 @@
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "config.h"
-
 //#if HAVE_TRACY
-  #define DETAILED_PROFILING 1
+//  #define DETAILED_PROFILING 1
 //  #define TRACY_ENABLE 1
 //  #include "tracy/Tracy.hpp"
 //  #include "tracy/TracyC.h"

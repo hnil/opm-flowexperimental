@@ -36,7 +36,7 @@
 #include <opm/models/blackoil/blackoilenergymodules.hh>
 #include <opm/flowexperimental/blackoilenergymodulesfv.hh>
 #include <opm/models/blackoil/blackoildiffusionmodule.hh>
-#include <opm/models/blackoil/blackoilmicpmodules.hh>
+//#include <opm/models/blackoil/blackoilmicpmodules.hh>
 #include <opm/material/fluidstates/BlackOilFluidState.hpp>
 #include <opm/material/common/Valgrind.hpp>
 #include <opm/common/ErrorMacros.hpp>
@@ -70,8 +70,9 @@ class BlackOilIntensiveQuantitiesSimple
     , public BlackOilPolymerIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnablePolymer>()>
     , public BlackOilFoamIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableFoam>()>
     , public BlackOilBrineIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableBrine>()>
-    , public BlackOilEnergyIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableEnergy>()>
-    , public BlackOilMICPIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableMICP>()>
+    , public BlackOilEnergyIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnergyModuleType>()>
+    //    , public BlackOilMICPIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableMICP>()>
+    , public BlackOilBioeffectsIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableBioeffects>()>
     , public BlackOilConvectiveMixingIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableConvectiveMixing>()>
 {
     using ParentType = GetPropType<TypeTag, Properties::DiscIntensiveQuantities>;
@@ -95,10 +96,13 @@ class BlackOilIntensiveQuantitiesSimple
     enum { enableBrine = getPropValue<TypeTag, Properties::EnableBrine>() };
     enum { enableVapwat = getPropValue<TypeTag, Properties::EnableVapwat>() };
     enum { enableSaltPrecipitation = getPropValue<TypeTag, Properties::EnableSaltPrecipitation>() };
-    enum { enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>() };
-    enum { enableEnergy = getPropValue<TypeTag, Properties::EnableEnergy>() };
+    static constexpr EnergyModules energyModuleType = getPropValue<TypeTag, Properties::EnergyModuleType>();
+    enum { enableTemperature = (energyModuleType == EnergyModules::ConstantTemperature) };
+    enum { enableEnergy = (energyModuleType == EnergyModules::FullyImplicitThermal) };
+    //enum { enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>() };
+    //enum { enableEnergy = getPropValue<TypeTag, Properties::EnableEnergy>() };
     enum { enableDiffusion = getPropValue<TypeTag, Properties::EnableDiffusion>() };
-    enum { enableMICP = getPropValue<TypeTag, Properties::EnableMICP>() };
+    //    enum { enableMICP = getPropValue<TypeTag, Properties::EnableMICP>() };
     enum { numPhases = getPropValue<TypeTag, Properties::NumPhases>() };
     enum { numComponents = getPropValue<TypeTag, Properties::NumComponents>() };
     enum { waterCompIdx = FluidSystem::waterCompIdx };
@@ -181,7 +185,7 @@ public:
     {
 
         this->extrusionFactor_ = 1.0;// to avoid fixing parent update
-        OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantities);
+        OPM_TIMEBLOCK_LOCAL(UpdateIntensiveQuantities,Opm::Subsystem::Props);
         //const auto& priVars = elemCtx.primaryVars(dofIdx, timeIdx);
         //const auto& linearizationType = problem.model().linearizer().getLinearizationType();
         Scalar RvMax = FluidSystem::enableVaporizedOil()
@@ -286,7 +290,7 @@ public:
             fluidState_.setRs(Rs);
         } else {
             if (FluidSystem::enableDissolvedGas()) { // Add So > 0? i.e. if only water set rs = 0)
-                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRs);
+                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRs,Opm::Subsystem::Props);
                 const Evaluation& RsSat = enableExtbo ? asImp_().rs() :
                     FluidSystem::saturatedDissolutionFactor(fluidState_,
                                                             oilPhaseIdx,
@@ -304,7 +308,7 @@ public:
             fluidState_.setRv(Rv);
         } else {
             if (FluidSystem::enableVaporizedOil() ) { // Add Sg > 0? i.e. if only water set rv = 0)
-                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv);
+                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv, Opm::Subsystem::Props);
                 //NB! should save the indexing for later evalustion
                 const Evaluation& RvSat = enableExtbo ? asImp_().rv() :
                     FluidSystem::saturatedDissolutionFactor(fluidState_,
@@ -325,7 +329,7 @@ public:
         } else {
             //NB! should save the indexing for later evaluation
             if (FluidSystem::enableVaporizedWater()) { // Add Sg > 0? i.e. if only water set rv = 0)
-                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv);
+                OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv,Opm::Subsystem::Props);
                 const Evaluation& RvwSat = FluidSystem::saturatedVaporizationFactor(fluidState_,
                                                             gasPhaseIdx,
                                                             pvtRegionIdx);
@@ -360,14 +364,14 @@ public:
         // calculate the phase densities
         Evaluation rho;
         if (FluidSystem::phaseIsActive(waterPhaseIdx)) {
-            OPM_TIMEBLOCK_LOCAL(UpdateWDensity);
+            OPM_TIMEBLOCK_LOCAL(UpdateWDensity,Opm::Subsystem::Props);
             rho = fluidState_.invB(waterPhaseIdx);
             rho *= FluidSystem::referenceDensity(waterPhaseIdx, pvtRegionIdx);
             fluidState_.setDensity(waterPhaseIdx, rho);
         }
 
         if (FluidSystem::phaseIsActive(gasPhaseIdx)) {
-            OPM_TIMEBLOCK_LOCAL(UpdateGDensity);
+            OPM_TIMEBLOCK_LOCAL(UpdateGDensity,Opm::Subsystem::Props);
             rho = fluidState_.invB(gasPhaseIdx);
             rho *= FluidSystem::referenceDensity(gasPhaseIdx, pvtRegionIdx);
             if (FluidSystem::enableVaporizedOil()) {
@@ -386,7 +390,7 @@ public:
         }
 
         if (FluidSystem::phaseIsActive(oilPhaseIdx)) {
-            OPM_TIMEBLOCK_LOCAL(UpdateODensity);
+            OPM_TIMEBLOCK_LOCAL(UpdateODensity,Opm::Subsystem::Props);
             rho = fluidState_.invB(oilPhaseIdx);
             rho *= FluidSystem::referenceDensity(oilPhaseIdx, pvtRegionIdx);
             if (FluidSystem::enableDissolvedGas()) {
@@ -406,7 +410,7 @@ public:
 
         Scalar rockCompressibility = problem.rockCompressibility(globalSpaceIdx);
         if (rockCompressibility > 0.0) {
-            OPM_TIMEBLOCK_LOCAL(UpdateRockCompressibility);
+            OPM_TIMEBLOCK_LOCAL(UpdateRockCompressibility,Opm::Subsystem::Props);
             Scalar rockRefPressure = problem.rockReferencePressure(globalSpaceIdx);
             Evaluation x;
             if (FluidSystem::phaseIsActive(oilPhaseIdx)) {
@@ -486,14 +490,14 @@ public:
                                                          unsigned phaseIdx,
                                                          unsigned pvtRegionIdx,
                                                          const Evaluation& SoMax){
-        OPM_TIMEBLOCK_LOCAL(UpdateInverseFormationFactorAndViscosity);
+        OPM_TIMEBLOCK_LOCAL(UpdateInverseFormationFactorAndViscosity,Opm::Subsystem::Props);
         {
-        OPM_TIMEBLOCK_LOCAL(UpdateFormationFactor);
+            OPM_TIMEBLOCK_LOCAL(UpdateFormationFactor,Opm::Subsystem::Props);
         const auto& b = FluidSystem::inverseFormationVolumeFactor(fluidState, phaseIdx, pvtRegionIdx);
         fluidState_.setInvB(phaseIdx, b);
         }
         {
-            OPM_TIMEBLOCK_LOCAL(UpdateViscosity);
+            OPM_TIMEBLOCK_LOCAL(UpdateViscosity,Opm::Subsystem::Props);
         typename FluidSystem::template ParameterCache<Evaluation> paramCache;
         paramCache.setRegionIndex(pvtRegionIdx);
         // if (FluidSystem::phaseIsActive(FluidSystem::oilPhaseIdx)) {
@@ -523,7 +527,7 @@ public:
                              const Problem& problem,
                              const FluidState& fluidState,
                              unsigned globalSpaceIdx){
-        OPM_TIMEBLOCK_LOCAL(UpdateRelperm);
+        OPM_TIMEBLOCK_LOCAL(UpdateRelperm,Opm::Subsystem::Props);
         const auto& materialParams = problem.materialLawParams(globalSpaceIdx);
         MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);
         problem.updateRelperms(mobility, dirMob_, fluidState, globalSpaceIdx);
@@ -618,10 +622,10 @@ private:
     friend BlackOilSolventIntensiveQuantities<TypeTag, enableSolvent>;
     friend BlackOilExtboIntensiveQuantities<TypeTag, enableExtbo>;
     friend BlackOilPolymerIntensiveQuantities<TypeTag, enablePolymer>;
-    friend BlackOilEnergyIntensiveQuantities<TypeTag, enableEnergy>;
+    friend BlackOilEnergyIntensiveQuantities<TypeTag, energyModuleType>;
     friend BlackOilFoamIntensiveQuantities<TypeTag, enableFoam>;
     friend BlackOilBrineIntensiveQuantities<TypeTag, enableBrine>;
-    friend BlackOilMICPIntensiveQuantities<TypeTag, enableMICP>;
+    //friend BlackOilMICPIntensiveQuantities<TypeTag, enableMICP>;
 
     Implementation& asImp_()
     { return *static_cast<Implementation*>(this); }

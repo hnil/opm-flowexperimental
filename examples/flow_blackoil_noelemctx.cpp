@@ -17,12 +17,12 @@
   along with OPM.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "config.h"
-#if HAVE_TRACY
-#include "tracy/Tracy.hpp"
-#include "tracy/TracyC.h"
-#define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
-#define OPM_TIMEBLOCK_LOCAL(blockname);// ZoneNamedN(blockname, #blockname, true);
-#endif
+// #if HAVE_TRACY
+// #include "tracy/Tracy.hpp"
+// #include "tracy/TracyC.h"
+// #define OPM_TIMEBLOCK(blockname) ZoneNamedN(blockname, #blockname, true);
+// #define OPM_TIMEBLOCK_LOCAL(blockname);// ZoneNamedN(blockname, #blockname, true);
+// #endif
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
@@ -74,11 +74,13 @@ namespace TTag {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-
+                      static constexpr bool enableHysteresis = false;
+    static constexpr bool enableEndpointScaling = true;
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
-                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
+                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx,
+                                                enableHysteresis, enableEndpointScaling>;
 
     public:
         using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;

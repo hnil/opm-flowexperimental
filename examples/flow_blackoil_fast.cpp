@@ -77,9 +77,13 @@ namespace TTag {
     };
 
     template<class TypeTag>
+    struct EnergyModuleType<TypeTag, TTag::EclFlowProblemTest>
+    { static constexpr EnergyModules value = EnergyModules::NoTemperature; };
+
+    template<class TypeTag>
     struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclBlackOilIntensiveQuantities<TypeTag>;
-      //using type = BlackOilIntensiveQuantities<TypeTag>;
+         using type = EclBlackOilIntensiveQuantities<TypeTag>;
+    //   //using type = BlackOilIntensiveQuantities<TypeTag>;
     };
 
 
@@ -89,11 +93,13 @@ namespace TTag {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
-
+              static constexpr bool enableHysteresis = false;
+    static constexpr bool enableEndpointScaling = true;
         using Traits = ThreePhaseMaterialTraits<Scalar,
                                                 /*wettingPhaseIdx=*/FluidSystem::waterPhaseIdx,
                                                 /*nonWettingPhaseIdx=*/FluidSystem::oilPhaseIdx,
-                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx>;
+                                                /*gasPhaseIdx=*/FluidSystem::gasPhaseIdx,
+                                                enableHysteresis, enableEndpointScaling>;
 
     public:
         using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits>;

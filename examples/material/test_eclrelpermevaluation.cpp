@@ -34,8 +34,10 @@
 #endif
 
 #include <opm/material/fluidmatrixinteractions/EclEpsGridProperties.hpp>
-#include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+#include <opm/material/fluidmatrixinteractions/EclMaterialLawManager.hpp>
+//#include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
 //#include <opm/material/fluidmatrixinteractions/EclMaterialDefaultLawManager.hpp>
+#include <opm/material/fluidmatrixinteractions/EclDefaultMaterialExperimental.hpp>
 #include <opm/material/fluidmatrixinteractions/EclMultiplexerMaterialParams.hpp>
 #include <opm/material/fluidmatrixinteractions/EclDefaultMaterial.hpp>
 #include <opm/material/fluidsystems/BlackOilFluidSystem.hpp>
@@ -113,10 +115,12 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     static constexpr int gasPhaseIdx = FluidSystem::gasPhaseIdx;
     static constexpr int oilPhaseIdx = FluidSystem::oilPhaseIdx;
     static constexpr int waterPhaseIdx = FluidSystem::waterPhaseIdx;
+                  static constexpr bool enableHysteresis = false;
+    static constexpr bool enableEndpointScaling = true;
     typedef Opm::ThreePhaseMaterialTraits<Scalar,
                                           /*wettingPhaseIdx=*/waterPhaseIdx,
                                           /*nonWettingPhaseIdx=*/oilPhaseIdx,
-                                          /*gasPhaseIdx=*/gasPhaseIdx> MaterialTraits;
+                                          /*gasPhaseIdx=*/gasPhaseIdx,enableHysteresis, enableEndpointScaling> MaterialTraits;
 
     static constexpr int gasCompIdx = FluidSystem::gasCompIdx;
     static constexpr int oilCompIdx = FluidSystem::oilCompIdx;
@@ -135,7 +139,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     const auto& eclGrid = eclState.getInputGrid();
     //size_t nc = eclGrid.getCartesianSize();
     size_t nc = eclGrid.getNumActive();
-    typedef Opm::EclMaterialLawManagerTable<MaterialTraits> MaterialLawManager;
+    typedef Opm::EclMaterialLaw::Manager<MaterialTraits> MaterialLawManager;
     //typedef Opm::EclMaterialDefaultLawManager<MaterialTraits> MaterialDefaultLawManager;
 
     MaterialLawManager  materialLawManager;
@@ -170,10 +174,11 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     const auto& waterpvt = FluidSystem::waterPvt();
     const auto& oilpvt = FluidSystem::oilPvt();
     const auto& gaspvt = FluidSystem::gasPvt();
+    using DefMaterial = typename MaterialLaw::DefaultMaterial;
     using ParamsT = typename MaterialLaw::DefaultMaterial::Params; 
     std::vector<ParamsT> materialParamsVector(nc);
     for(int i=0; i < nc; ++i){
-         materialParamsVector[i] = materialLawManager.materialLawParams(i).template getRealParams<Opm::EclMultiplexerApproach::Default>();
+          materialParamsVector[i] = materialLawManager.materialLawParams(i).template getRealParams<Opm::EclMultiplexerApproach::Default>();
     }
     std::cout << "Doing evaluation " << num_total << " of nc " << nc << " total " << nc*num_total << std::endl;
     Opm::time_point start;
@@ -219,7 +224,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
             // //MaterialLaw::capillaryPressures(pC, materialParams, fluidState);
             // //MaterialLaw::relativePermeabilities(mobility, materialParams, fluidState);
 //            MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState);
-            MaterialLaw::DefaultMaterial::relativePermeabilitiesSimple(mobility, materialParams, fluidState);
+            Opm::EclDefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilitiesSimple(mobility, materialParams, fluidState);
             //MaterialLaw::DefaultMaterial::relativePermeabilities(mobility, materialParams, fluidState);
             
         }

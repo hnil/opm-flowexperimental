@@ -265,8 +265,8 @@ inline Opm::time_point::duration testAll(const char * deck_file)
                 fluidState.setDensity(oilPhaseIdx, rho);
             }
 
-            std::array<Evaluation, numPhases> mobility;
-            // for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx) {
+            //std::array<Evaluation, numPhases> mobility;
+            //for (unsigned phaseIdx = 0; phaseIdx < numPhases; ++phaseIdx) {
             //     if (FluidSystem::phaseIsActive(phaseIdx)) {
             //         // const Evaluation mu = FluidSystem::viscosity(fluidState, paramCache, phaseIdx);
             //         const Evaluation mu = FluidSystem::viscosity(fluidState, phaseIdx, pvtRegionIdx);
@@ -306,11 +306,12 @@ inline Opm::time_point::duration testAll(const char * deck_file)
         }
     }
     Opm::time_point::duration total_time = Opm::TimeService::now() - start;
-    return total_time;
-    // make sure that the {oil,gas,water}Pvt() methods are available
     [[maybe_unused]] const auto& gPvt = FluidSystem::gasPvt();
     [[maybe_unused]] const auto& oPvt = FluidSystem::oilPvt();
     [[maybe_unused]] const auto& wPvt = FluidSystem::waterPvt();
+    return total_time;
+    // make sure that the {oil,gas,water}Pvt() methods are available
+
 }
 
 int main(int argc, char **argv)

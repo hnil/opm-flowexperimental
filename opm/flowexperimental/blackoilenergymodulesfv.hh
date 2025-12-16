@@ -40,7 +40,7 @@ namespace Opm {
 // {
 
 // }
-template <class TypeTag, bool enableEnergyV = getPropValue<TypeTag, Properties::EnableEnergy>()>
+template <class TypeTag, EnergyModules enableEnergyV = getPropValue<TypeTag, Properties::EnableEnergy>()>
 class BlackOilEnergyIntensiveQuantitiesFV: public BlackOilEnergyIntensiveQuantities<TypeTag,enableEnergyV>
 {
     using Parent =  BlackOilEnergyIntensiveQuantities<TypeTag, enableEnergyV>;
@@ -51,7 +51,10 @@ class BlackOilEnergyIntensiveQuantitiesFV: public BlackOilEnergyIntensiveQuantit
     using Scalar = GetPropType<TypeTag, Properties::Scalar>;
     using SolidEnergyLaw = GetPropType<TypeTag, Properties::SolidEnergyLaw>;
     using ThermalConductionLaw  = GetPropType<TypeTag, Properties::ThermalConductionLaw>;
-    static constexpr bool enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>();
+      static constexpr EnergyModules energyModuleType = getPropValue<TypeTag, Properties::EnergyModuleType>();
+    enum { enableTemperature = (energyModuleType == EnergyModules::ConstantTemperature) };
+     enum { enableEnergy = (energyModuleType == EnergyModules::FullyImplicitThermal) };
+    //    static constexpr bool enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>();
     
     using Indices = GetPropType<TypeTag, Properties::Indices>;
     static constexpr unsigned temperatureIdx = Indices::temperatureIdx;
@@ -102,15 +105,18 @@ public:
 
 };
 template <class TypeTag>
-class BlackOilEnergyIntensiveQuantitiesFV<TypeTag, false>: public BlackOilEnergyIntensiveQuantities<TypeTag, false>
+class BlackOilEnergyIntensiveQuantitiesFV<TypeTag, Opm::EnergyModules::NoTemperature>: public BlackOilEnergyIntensiveQuantities<TypeTag, Opm::EnergyModules::NoTemperature>
     {
-        using Parent =  BlackOilEnergyIntensiveQuantities<TypeTag, false>;
+        using Parent =  BlackOilEnergyIntensiveQuantities<TypeTag, Opm::EnergyModules::NoTemperature>;
         using Problem = GetPropType<TypeTag, Properties::Problem>;
         using PrimaryVariables = GetPropType<TypeTag, Properties::PrimaryVariables>;
         using FluidSystem = GetPropType<TypeTag, Properties::FluidSystem>;
         using Evaluation = GetPropType<TypeTag, Properties::Evaluation>;
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
-        static constexpr bool enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>();
+        //        static constexpr bool enableTemperature = getPropValue<TypeTag, Properties::EnableTemperature>();
+              static constexpr EnergyModules energyModuleType = getPropValue<TypeTag, Properties::EnergyModuleType>();
+    enum { enableTemperature = (energyModuleType == EnergyModules::ConstantTemperature) };
+     enum { enableEnergy = (energyModuleType == EnergyModules::FullyImplicitThermal) };
     public:
         void updateTemperature_([[maybe_unused]] const Problem& problem,
                                 [[maybe_unused]] const PrimaryVariables& priVars,
