@@ -27,6 +27,7 @@
 //#endif
 
 #include <opm/simulators/flow/Main.hpp>
+#include <opm/simulators/linalg/ISTLSolverExperiment.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 
@@ -61,9 +62,14 @@ namespace TTag {
     struct LinearSolverSplice<TypeTag, TTag::EclFlowProblemTest> {
         using type = TTag::FlowIstlSolver;
     };
+  template<class TypeTag>
+  struct LinearSolverBackend<TypeTag, TTag::EclFlowProblemTest> {
+    using type = ISTLSolverExperiment<TypeTag>;
+  };
+}
 }
      
-}
+
    
 
 int main(int argc, char** argv)

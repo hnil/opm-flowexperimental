@@ -150,13 +150,21 @@ set_property(TARGET moduleVersionExp PROPERTY POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_PROJECT_NAME "${PROJECT_NAME}")
 add_custom_target(opm-flowexperimental_prepare)
 
+opm_add_test(matrix_merger_example
+		ONLY_COMPILE	
+		ALWAYS_ENABLE	
+		SOURCES
+		examples/matrix_merger_example.cpp
+		$<TARGET_OBJECTS:moduleVersionExp>
+)
+	
 opm_add_test(flow_blackoil_tracy
 	ONLY_COMPILE
 	ALWAYS_ENABLE
 	DEPENDS opmsimulators
 	LIBRARIES opmsimulators
 	SOURCES
-	examples/flow_blackoil_tracy.cpp
+	examples/flow_blackoil_tracy.cpp opm/simulators/linalg/ISTLSolverExperiment.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
 if(USE_EASYPROFILER)
@@ -247,7 +255,7 @@ opm_add_test(flow_blackoil_fast_wateroil
 	SOURCES
 	examples/flow_blackoil_fast_wateroil.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
-	)
+	)	
 
 target_sources(flow_blackoil_fast_wateroil
 	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)

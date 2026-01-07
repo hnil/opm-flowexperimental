@@ -123,7 +123,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
      typedef Opm::BlackOilFluidState<Evaluation, FluidSystem> FluidState;
     
     std::vector<int> pvtnum(nc,0);
-    const std::string& name("PVTNUM");
+    const std::string name("PVTNUM");
     if (eclState.fieldProps().has_int(name)){
         const auto& numData = eclState.fieldProps().get_int(name);
     
