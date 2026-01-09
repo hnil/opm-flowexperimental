@@ -84,16 +84,3 @@ namespace Opm {
 }
 }
 
-using Comm = Dune::Amg::SequentialInformation;
-using WWMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<double, numWellDofs, numWellDofs>>;
-using WellVector = Dune::BlockVector<Dune::FieldVector<double, numWellDofs>>;
-using WellOp = Dune::MatrixAdapter<WWMatrix, WellVector, WellVector>;
-//using WellFlexibleSolverType = Dune::FlexibleSolver<WellOp>;  
-//template Dune::FlexibleSolver<WellOp>;
-//template class Dune::FlexibleSolver<WellOp>;
-// Dune::FlexibleSolver<WellOp>::FlexibleSolver(WellOp& op,
-//                     Comm& comm,
-//                     const Opm::PropertyTree& prm,
-//                     const std::function<WellVector()>& weightsCalculator,
-//                     std::size_t pressureIndex);
-// Define matrix and vector typ
