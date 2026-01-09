@@ -80,7 +80,7 @@ namespace Opm
                         OPM_TIMEBLOCK(ISTLSolverExperiment_solve);
                         // Here we could add experimental features before or after calling the base class solve.
                         Parent::solve(x);
-                        bool solve_system = true;
+                        bool solve_system = this->prm_[0].get("use_system_solver", true);
                         if (solve_system)
                         {
                                 // get reservoir matrix
@@ -151,7 +151,7 @@ namespace Opm
                                 SystemVector x_s{x_r, x_w};
                                 SystemVector r_s{r_res, w_res};
 
-                                Opm::PropertyTree prm; // = this->prm_[0].get_child("full_system_solver");
+                                Opm::PropertyTree prm = this->prm_[0].get_child("system_solver");
                                 SystemSolver::solveSystem(S, x_s, r_s, prm);
                         }
                         return true;

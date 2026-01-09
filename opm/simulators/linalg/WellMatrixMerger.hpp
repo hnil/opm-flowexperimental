@@ -104,128 +104,104 @@ void printVector(const std::string& name, const Vector& vector)
 }
 
 // Extract diagonal elements from a matrix
-template<class Matrix>
-auto diagvec(const Matrix& matrix) {
-    using BlockType = typename Matrix::block_type;
-    using FieldType = typename BlockType::field_type;
-    using VectorBlock = Dune::FieldVector<FieldType, BlockType::rows>;
-    using ResVector = Dune::BlockVector<VectorBlock>;
-    
-    ResVector diag(matrix.N());
-    for (size_t i = 0; i < matrix.N(); ++i) {
-        auto row = matrix[i];
-        auto col = row.find(i);
-        if (col != row.end()) {
-            // Extract diagonal elements
-            for (size_t j = 0; j < BlockType::rows; ++j) {
-                diag[i][j] = (*col)[j][j];
-            }
-        } else {
-            // If diagonal element doesn't exist, set to 1.0
-            for (size_t j = 0; j < BlockType::rows; ++j) {
-                diag[i][j] = 1.0;
-            }
-        }
-    }
-    return diag;
-}
+
 
 // Simple diagonal preconditioner for the system
-class TailoredPrecondDiag : public Dune::Preconditioner<SystemVector, SystemVector>
-{
-public:
-    using ResVector = Dune::BlockVector<Dune::FieldVector<double, numResDofs>>;
-    using WellVector = Dune::BlockVector<Dune::FieldVector<double, numWellDofs>>;
-    using ResOperator = Dune::MatrixAdapter<RRMatrix, ResVector, ResVector>;
-    using ResFlexibleSolverType = Dune::FlexibleSolver<ResOperator>;
-    using WellOperator = Dune::MatrixAdapter<WWMatrix, WellVector, WellVector>;
-    using WellFlexibleSolverType = Dune::FlexibleSolver<WellOperator>;        
+// class TailoredPrecondDiag : public Dune::Preconditioner<SystemVector, SystemVector>
+// {
+// public:
+//     using ResVector = Dune::BlockVector<Dune::FieldVector<double, numResDofs>>;
+//     using WellVector = Dune::BlockVector<Dune::FieldVector<double, numWellDofs>>;
+//     using ResOperator = Dune::MatrixAdapter<RRMatrix, ResVector, ResVector>;
+//     using ResFlexibleSolverType = Dune::FlexibleSolver<ResOperator>;
+//     using WellOperator = Dune::MatrixAdapter<WWMatrix, WellVector, WellVector>;
+//     using WellFlexibleSolverType = Dune::FlexibleSolver<WellOperator>;        
 
-    TailoredPrecondDiag(const SystemMatrix& S, Opm::PropertyTree& prm) :
-        A_diag_(diagvec(S[_0][_0])), M_diag_(diagvec(S[_1][_1])), prm_(prm) {
-            auto rop = std::make_unique<ResOperator>(S[_0][_0]);
-            auto wop = std::make_unique<WellOperator>(S[_1][_1]);
-            //auto resprm = prm_.get_child("reservoir_solver");
-            //auto wellprm = prm_.get_child("well_solver");
-            std::function<ResVector()> weightsCalculatorRes;
-            int pressureIndex = 0; // Assuming pressure is the first variable
-            // auto rsol = std::make_unique<ResFlexibleSolverType>(*rop, resprm,
-            //                                                 weightsCalculatorRes,
-            //                                                 pressureIndex);
-            // std::function<WellVector()> weightsCalculatorWell;
-            // auto wsol = std::make_unique<WellFlexibleSolverType>(*wop, wellprm,
-            //                                                 weightsCalculatorWell,
-            //                                                 pressureIndex);
-            // this->rop_ = std::move(rop);
-            // this->wop_ = std::move(wop);
-            // this->resSolver_ = std::move(rsol);
-            // this->wellSolver_ = std::move(wsol);
+//     TailoredPrecondDiag(const SystemMatrix& S, Opm::PropertyTree& prm) :
+//         A_diag_(diagvec(S[_0][_0])), M_diag_(diagvec(S[_1][_1])), prm_(prm) {
+//             auto rop = std::make_unique<ResOperator>(S[_0][_0]);
+//             auto wop = std::make_unique<WellOperator>(S[_1][_1]);
+//             //auto resprm = prm_.get_child("reservoir_solver");
+//             //auto wellprm = prm_.get_child("well_solver");
+//             std::function<ResVector()> weightsCalculatorRes;
+//             int pressureIndex = 0; // Assuming pressure is the first variable
+//             // auto rsol = std::make_unique<ResFlexibleSolverType>(*rop, resprm,
+//             //                                                 weightsCalculatorRes,
+//             //                                                 pressureIndex);
+//             // std::function<WellVector()> weightsCalculatorWell;
+//             // auto wsol = std::make_unique<WellFlexibleSolverType>(*wop, wellprm,
+//             //                                                 weightsCalculatorWell,
+//             //                                                 pressureIndex);
+//             // this->rop_ = std::move(rop);
+//             // this->wop_ = std::move(wop);
+//             // this->resSolver_ = std::move(rsol);
+//             // this->wellSolver_ = std::move(wsol);
 
-        }
+//         }
     
-    virtual void apply(SystemVector& v, const SystemVector& d) override {
-        bool simple = true;
-        v = d;
-        //return;
-        if (simple)
-        {
-            for (size_t i = 0; i != A_diag_.size(); ++i)
-            {
-                for (size_t j = 0; j < numResDofs; ++j)
-                {
-                    v[_0][i][j] = d[_0][i][j] / A_diag_[i][j];
-                }
-            }
-            for (size_t i = 0; i != M_diag_.size(); ++i)
-            {
-                for (size_t j = 0; j < numWellDofs; ++j)
-                {
-                    //v[_1][i][j] = d[_1][i][j] / M_diag_[i][j];
-                }
-            }
-        }
-        else
-        {
-            // change order?
-            Dune::InverseOperatorResult well_result;
-            WVector wellPart = d[_1];
-            WVector vWellPart(wellPart.size());
+//     virtual void apply(SystemVector& v, const SystemVector& d) override {
+//         bool simple = true;
+//         v = d;
+//         //return;
+//         if (simple)
+//         {
+//             for (size_t i = 0; i != A_diag_.size(); ++i)
+//             {
+//                 for (size_t j = 0; j < numResDofs; ++j)
+//                 {
+//                     v[_0][i][j] = d[_0][i][j] / A_diag_[i][j];
+//                 }
+//             }
+//             for (size_t i = 0; i != M_diag_.size(); ++i)
+//             {
+//                 for (size_t j = 0; j < numWellDofs; ++j)
+//                 {
+//                     //v[_1][i][j] = d[_1][i][j] / M_diag_[i][j];
+//                 }
+//             }
+//         }
+//         else
+//         {
+//             // change order?
+//             Dune::InverseOperatorResult well_result;
+//             WVector wellPart = d[_1];
+//             WVector vWellPart(wellPart.size());
 
-            // wellSolver_->apply(vWellPart, wellPart, 1e-3, well_result);
-            v[_1] = vWellPart;
-            // Use reservoir solver
-            RVector resPart = d[_0];
-            // updete residual
-            // S_[0][_1].mv(vWellPart, resPart, -1.0, 1.0);
-            Dune::InverseOperatorResult res_result;
-            RVector vPart(resPart.size());
-            // resSolver_->apply(vPart, resPart, 1e-3, res_result);
-            v[_0] = vPart;
-            // update well rhs
+//             // wellSolver_->apply(vWellPart, wellPart, 1e-3, well_result);
+//             v[_1] = vWellPart;
+//             // Use reservoir solver
+//             RVector resPart = d[_0];
+//             // updete residual
+//             // S_[0][_1].mv(vWellPart, resPart, -1.0, 1.0);
+//             Dune::InverseOperatorResult res_result;
+//             RVector vPart(resPart.size());
+//             // resSolver_->apply(vPart, resPart, 1e-3, res_result);
+//             v[_0] = vPart;
+//             // update well rhs
 
-            // update residual
-            // S_[1][_0].mv(vPart, wellPart, -1.0, 1.0);
-        }
-    }
+//             // update residual
+//             // S_[1][_0].mv(vPart, wellPart, -1.0, 1.0);
+//         }
+//     }
 
-    virtual void pre(SystemVector& x, SystemVector& b) override {}
-    virtual void post(SystemVector& x) override {}
-    virtual Dune::SolverCategory::Category category() const override {
-        return Dune::SolverCategory::sequential;
-    }
+//     virtual void pre(SystemVector& x, SystemVector& b) override {}
+//     virtual void post(SystemVector& x) override {}
+//     virtual Dune::SolverCategory::Category category() const override {
+//         return Dune::SolverCategory::sequential;
+//     }
     
-private:
-    const ResVector A_diag_;
-    const WellVector M_diag_;
-    Opm::PropertyTree& prm_;
-    std::unique_ptr<ResOperator> rop_;
-    std::unique_ptr<WellOperator> wop_;
-    // std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSolver_;
-    // std::unique_ptr<Dune::InverseOperator<WellVector, WellVector>> wellSolver_;
-    // Dune::FlexibleSolver<ResOperator> resSolver_;
-    // Dune::FlexibleSolver<WellOperator> wellSolver_;
+// private:
+//     const ResVector A_diag_;
+//     const WellVector M_diag_;
+//     Opm::PropertyTree& prm_;
+//     std::unique_ptr<ResOperator> rop_;
+//     std::unique_ptr<WellOperator> wop_;
+//     // std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSolver_;
+//     // std::unique_ptr<Dune::InverseOperator<WellVector, WellVector>> wellSolver_;
+//     // Dune::FlexibleSolver<ResOperator> resSolver_;
+//     // Dune::FlexibleSolver<WellOperator> wellSolver_;
     
-};
+// };
 
 // Count non-zeros in a matrix row
 template<class Row>

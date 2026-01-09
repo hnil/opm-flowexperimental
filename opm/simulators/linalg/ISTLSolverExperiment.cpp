@@ -7,6 +7,7 @@
 #include <dune/istl/multitypeblockmatrix.hh>
 #include <dune/istl/multitypeblockvector.hh>
 #include "WellMatrixMerger.hpp"
+#include "SystemPreconditioner.hpp"
 namespace Opm {
         namespace SystemSolver {
   const int numResDofs = 3;
@@ -38,12 +39,14 @@ namespace Opm {
         // This is a placeholder implementation
         std::cout << "Solving system with merged matrices..." << std::endl;
          const Dune::MatrixAdapter<SystemMatrix, SystemVector, SystemVector> S_linop(S);
-    TailoredPrecondDiag precond(S,prm);
+    //TailoredPrecondDiag precond(S,prm);
+    Opm::PropertyTree precond_prm = prm.get_child("preconditioner");
+    SystemPreconditioner precond(S,precond_prm);
     
     // Set solver parameters
-    double linsolve_tol = 1e-6;  // Less strict tolerance
-    int max_iter = 20;           // Limit iterations
-    int verbosity = 3;           // Reduce output verbosity
+    double linsolve_tol = prm.get<double>("tol");  // Less strict tolerance
+    int max_iter = prm.get<int>("maxiter");           // Limit iterations
+    int verbosity = prm.get<int>("verbosity");           // Reduce output verbosity
     
     // Create and run the solver with error handling
     try {
