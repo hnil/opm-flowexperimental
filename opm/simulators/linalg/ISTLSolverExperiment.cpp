@@ -71,8 +71,8 @@ namespace Opm {
         std::cout << "  Reduction: " << result.reduction << std::endl;
         std::cout << "  Elapsed time: " << result.elapsed << " seconds" << std::endl;
         
-        printVector("Solution x_r", x[_0]);
-        printVector("Solution x_w", x[_1]);
+        //printVector("Solution x_r", x[_0]);
+        //printVector("Solution x_w", x[_1]);
     }
     catch (const std::exception& e) {
         std::cerr << "Error solving system: " << e.what() << std::endl;
