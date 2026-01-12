@@ -3,16 +3,16 @@
 #include <opm/simulators/linalg/FlexibleSolver_impl.hpp>
 
 namespace Opm {
-    SystemPreconditioner::SystemPreconditioner(const SystemMatrix& S, Opm::PropertyTree& prm) :
-        A_diag_(diagvec(S[_0][_0])), M_diag_(diagvec(S[_1][_1])), prm_(prm) {
+    SystemPreconditioner::SystemPreconditioner(const SystemMatrix& S,const std::function<ResVector()> &weightsCalculator,int pressureIndex, 
+    const Opm::PropertyTree& prm) :
+        S_(S), prm_(prm) {
             auto rop = std::make_unique<ResOperator>(S[_0][_0]);
             auto wop = std::make_unique<WellOperator>(S[_1][_1]);
             auto resprm = prm_.get_child("reservoir_solver");
             auto wellprm = prm_.get_child("well_solver");
-            std::function<ResVector()> weightsCalculatorRes;
-            int pressureIndex = 0; // Assuming pressure is the first variable
+            //std::function<ResVector()> weightsCalculatorRes;
             auto rsol = std::make_unique<ResFlexibleSolverType>(*rop, resprm,
-                                                             weightsCalculatorRes,
+                                                             weightsCalculator,
                                                              pressureIndex);
             std::function<WellVector()> weightsCalculatorWell;
             auto wsol = std::make_unique<WellFlexibleSolverType>(*wop, wellprm,
@@ -27,50 +27,44 @@ namespace Opm {
     
     void 
     SystemPreconditioner::apply(SystemVector& v, const SystemVector& d) {
-        bool simple = false;
-        v = d;
-        //return;
-        if (simple)
-        {
-            for (size_t i = 0; i != A_diag_.size(); ++i)
-            {
-                for (size_t j = 0; j < numResDofs; ++j)
-                {
-                    v[_0][i][j] = d[_0][i][j] / A_diag_[i][j];
-                }
-            }
-            for (size_t i = 0; i != M_diag_.size(); ++i)
-            {
-                for (size_t j = 0; j < numWellDofs; ++j)
-                {
-                    //v[_1][i][j] = d[_1][i][j] / M_diag_[i][j];
-                }
-            }
-        }
-        else
-        {
             // change order?
             Dune::InverseOperatorResult well_result;
-            WellVector wellPart = d[_1];
-            WellVector vWellPart(wellPart.size());
-            vWellPart = wellPart;
+            const auto& C = S_[_1][_0];
+            const auto& B = S_[_0][_1];
+            const auto& r_r = d[_0];
+            const auto& r_w = d[_1];
+
+            auto wRes = r_w;
+            C.mv(v[_0], wRes);
+            WellVector wSol(wRes.size());
+            //wSol = v[_1];
+            wSol = 0.0;
             double well_tol = prm_.get<double>("well_solver.tol");
-            wellSolver_->apply(vWellPart, wellPart, well_tol, well_result);
-            v[_1] = vWellPart;
+            wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            v[_1] = wSol;
             // Use reservoir solver
-            ResVector resPart = d[_0];
-            // updete residual
-            // S_[0][_1].mv(vWellPart, resPart, -1.0, 1.0);
+            
+            auto resRes = r_r;
+            ResVector resSol(resRes.size());
+            resSol = 0.0;
+            B.mmv(wSol, resRes);
             Dune::InverseOperatorResult res_result;
-            ResVector vPart(resPart.size());
             double res_tol = prm_.get<double>("reservoir_solver.tol");
-            resSolver_->apply(vPart, resPart, 1e-3, res_result);
-            v[_0] = vPart;
+            resSolver_->apply(resSol, resRes, res_tol, res_result);
+            v[_0] = resSol;
+            // solve well again
+            
+            wRes = d[_1];
+            C.mmv(v[_0], wRes);
+            wSol = 0.0;
+            wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            v[_1] = wSol;
+            
             // update well rhs
 
             // update residual
             // S_[1][_0].mv(vPart, wellPart, -1.0, 1.0);
-        }
+        
     }
 
 }

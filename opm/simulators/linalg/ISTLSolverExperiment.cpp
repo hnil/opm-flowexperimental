@@ -33,7 +33,8 @@ namespace Opm {
         >; 
         using SystemVector = Dune::MultiTypeBlockVector<RVector, WVector>;
 
-    void solveSystem(const SystemMatrix& S, SystemVector& x, const SystemVector& b,Opm::PropertyTree& prm)
+    Dune::InverseOperatorResult solveSystem(const SystemMatrix& S, SystemVector& x, const SystemVector& b, 
+        const std::function<RVector()> &weightCalculator,int pressureIndex, const Opm::PropertyTree& prm)
     {
         // Here we would implement the solver logic for the system S * x = b
         // This is a placeholder implementation
@@ -41,13 +42,13 @@ namespace Opm {
          const Dune::MatrixAdapter<SystemMatrix, SystemVector, SystemVector> S_linop(S);
     //TailoredPrecondDiag precond(S,prm);
     Opm::PropertyTree precond_prm = prm.get_child("preconditioner");
-    SystemPreconditioner precond(S,precond_prm);
+    SystemPreconditioner precond(S,weightCalculator, pressureIndex, precond_prm);
     
     // Set solver parameters
     double linsolve_tol = prm.get<double>("tol");  // Less strict tolerance
     int max_iter = prm.get<int>("maxiter");           // Limit iterations
     int verbosity = prm.get<int>("verbosity");           // Reduce output verbosity
-    
+    Dune::InverseOperatorResult result;
     // Create and run the solver with error handling
     try {
         std::cout << "Solving system with BiCGSTAB solver..." << std::endl;
@@ -59,11 +60,8 @@ namespace Opm {
             max_iter,
             verbosity
         );
-        
-        Dune::InverseOperatorResult result;
         auto residual(b);
         solver.apply(x, residual, result);
-        
         // Print results
         std::cout << "\nSolver results:" << std::endl;
         std::cout << "  Converged: " << (result.converged ? "Yes" : "No") << std::endl;
@@ -76,10 +74,11 @@ namespace Opm {
     }
     catch (const std::exception& e) {
         std::cerr << "Error solving system: " << e.what() << std::endl;
+        //return result;
     }
     
     std::cout << "\nMatrix merger example completed successfully!" << std::endl;
-    
+    return result;
     }
 }
 }

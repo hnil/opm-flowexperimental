@@ -67,7 +67,10 @@ public:
     
     
 
-    SystemPreconditioner(const SystemMatrix& S, Opm::PropertyTree& prm);
+    SystemPreconditioner(const SystemMatrix& S, 
+        const std::function<ResVector()> &weightCalculator, 
+        int pressureIndex, 
+        const Opm::PropertyTree& prm);
     virtual void apply(SystemVector& v, const SystemVector& d) override;
     virtual void pre(SystemVector& /*x*/, SystemVector& /*b*/) override {}
     virtual void post(SystemVector& /*x*/) override {}
@@ -76,9 +79,8 @@ public:
     }
     
 private:
-    const ResVector A_diag_;
-    const WellVector M_diag_;
-    Opm::PropertyTree& prm_;
+    const SystemMatrix& S_;
+    const Opm::PropertyTree& prm_;
     std::unique_ptr<ResOperator> rop_;
     std::unique_ptr<WellOperator> wop_;
     std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSolver_;

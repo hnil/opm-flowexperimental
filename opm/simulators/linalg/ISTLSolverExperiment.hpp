@@ -24,7 +24,9 @@ namespace Opm
                     Dune::MultiTypeBlockVector<WRMatrix, WWMatrix>>;
                 using SystemVector = Dune::MultiTypeBlockVector<RVector, WVector>;
 
-                void solveSystem(const SystemMatrix &S, SystemVector &x, const SystemVector &b, Opm::PropertyTree &prm);
+                Dune::InverseOperatorResult solveSystem(const SystemMatrix &S, SystemVector &x, const SystemVector &b,  
+                        const std::function<RVector()> &weightCalculator,
+                        int pressureIndex, const Opm::PropertyTree &prm);
                
         } // namespace SystemSolver
         template <class TypeTag>
@@ -79,10 +81,11 @@ namespace Opm
                 {
                         OPM_TIMEBLOCK(ISTLSolverExperiment_solve);
                         // Here we could add experimental features before or after calling the base class solve.
-                        Parent::solve(x);
-                        bool solve_system = this->prm_[0].get("use_system_solver", true);
+                        const auto& prm = this->prm_[this->activeSolverNum_];
+                        bool solve_system = prm.get("use_system_solver", true);
                         if (solve_system)
                         {
+                                
                                 // get reservoir matrix
                                 const int numResDofs = 3;
                                 const int numWellDofs = 4;
@@ -127,6 +130,8 @@ namespace Opm
                                 //   merger.addWell(B1, C1, D1, cells1, 0, "Well1");
 
                                 merger.finalize();
+                                
+
 
                                 // Get the merged matrices
                                 const auto &mergedB = merger.getMergedB();
@@ -148,11 +153,27 @@ namespace Opm
                                 WVector x_w(D_copy.N());
                                 x_w = 0.0;
                                 w_res = x_w;
+                                // set well residual
+                                size_t well_dof=0;
+                                for (size_t i = 0; i < residual.size(); ++i)
+                                {
+                                        for (size_t j = 0; j < residual[i].size(); ++j)
+                                        {
+                                                w_res[well_dof] += residual[i][j];
+                                                well_dof++;
+                                        }
+                                }
                                 SystemVector x_s{x_r, x_w};
                                 SystemVector r_s{r_res, w_res};
-
-                                Opm::PropertyTree prm = this->prm_[0].get_child("system_solver");
-                                SystemSolver::solveSystem(S, x_s, r_s, prm);
+                                const auto& prm_system = prm.get_child("system_solver");
+                                std::function<RVector()> weightCalculator = this->getWeightsCalculator(prm_system.get_child("preconditioner.reservoir_solver"), this->getMatrix(), pressureIndex);
+                                const auto result = SystemSolver::solveSystem(S, x_s, r_s, weightCalculator, pressureIndex, prm_system);
+                                x = x_s[_0];
+                                this->iterations_ = result.iterations;
+                        }else
+                        {
+                                // Call the base class solve method
+                                return Parent::solve(x);
                         }
                         return true;
                 }
