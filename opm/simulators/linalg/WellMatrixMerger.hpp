@@ -103,105 +103,6 @@ void printVector(const std::string& name, const Vector& vector)
     std::cout << "]" << std::endl << std::endl;
 }
 
-// Extract diagonal elements from a matrix
-
-
-// Simple diagonal preconditioner for the system
-// class TailoredPrecondDiag : public Dune::Preconditioner<SystemVector, SystemVector>
-// {
-// public:
-//     using ResVector = Dune::BlockVector<Dune::FieldVector<double, numResDofs>>;
-//     using WellVector = Dune::BlockVector<Dune::FieldVector<double, numWellDofs>>;
-//     using ResOperator = Dune::MatrixAdapter<RRMatrix, ResVector, ResVector>;
-//     using ResFlexibleSolverType = Dune::FlexibleSolver<ResOperator>;
-//     using WellOperator = Dune::MatrixAdapter<WWMatrix, WellVector, WellVector>;
-//     using WellFlexibleSolverType = Dune::FlexibleSolver<WellOperator>;        
-
-//     TailoredPrecondDiag(const SystemMatrix& S, Opm::PropertyTree& prm) :
-//         A_diag_(diagvec(S[_0][_0])), M_diag_(diagvec(S[_1][_1])), prm_(prm) {
-//             auto rop = std::make_unique<ResOperator>(S[_0][_0]);
-//             auto wop = std::make_unique<WellOperator>(S[_1][_1]);
-//             //auto resprm = prm_.get_child("reservoir_solver");
-//             //auto wellprm = prm_.get_child("well_solver");
-//             std::function<ResVector()> weightsCalculatorRes;
-//             int pressureIndex = 0; // Assuming pressure is the first variable
-//             // auto rsol = std::make_unique<ResFlexibleSolverType>(*rop, resprm,
-//             //                                                 weightsCalculatorRes,
-//             //                                                 pressureIndex);
-//             // std::function<WellVector()> weightsCalculatorWell;
-//             // auto wsol = std::make_unique<WellFlexibleSolverType>(*wop, wellprm,
-//             //                                                 weightsCalculatorWell,
-//             //                                                 pressureIndex);
-//             // this->rop_ = std::move(rop);
-//             // this->wop_ = std::move(wop);
-//             // this->resSolver_ = std::move(rsol);
-//             // this->wellSolver_ = std::move(wsol);
-
-//         }
-    
-//     virtual void apply(SystemVector& v, const SystemVector& d) override {
-//         bool simple = true;
-//         v = d;
-//         //return;
-//         if (simple)
-//         {
-//             for (size_t i = 0; i != A_diag_.size(); ++i)
-//             {
-//                 for (size_t j = 0; j < numResDofs; ++j)
-//                 {
-//                     v[_0][i][j] = d[_0][i][j] / A_diag_[i][j];
-//                 }
-//             }
-//             for (size_t i = 0; i != M_diag_.size(); ++i)
-//             {
-//                 for (size_t j = 0; j < numWellDofs; ++j)
-//                 {
-//                     //v[_1][i][j] = d[_1][i][j] / M_diag_[i][j];
-//                 }
-//             }
-//         }
-//         else
-//         {
-//             // change order?
-//             Dune::InverseOperatorResult well_result;
-//             WVector wellPart = d[_1];
-//             WVector vWellPart(wellPart.size());
-
-//             // wellSolver_->apply(vWellPart, wellPart, 1e-3, well_result);
-//             v[_1] = vWellPart;
-//             // Use reservoir solver
-//             RVector resPart = d[_0];
-//             // updete residual
-//             // S_[0][_1].mv(vWellPart, resPart, -1.0, 1.0);
-//             Dune::InverseOperatorResult res_result;
-//             RVector vPart(resPart.size());
-//             // resSolver_->apply(vPart, resPart, 1e-3, res_result);
-//             v[_0] = vPart;
-//             // update well rhs
-
-//             // update residual
-//             // S_[1][_0].mv(vPart, wellPart, -1.0, 1.0);
-//         }
-//     }
-
-//     virtual void pre(SystemVector& x, SystemVector& b) override {}
-//     virtual void post(SystemVector& x) override {}
-//     virtual Dune::SolverCategory::Category category() const override {
-//         return Dune::SolverCategory::sequential;
-//     }
-    
-// private:
-//     const ResVector A_diag_;
-//     const WellVector M_diag_;
-//     Opm::PropertyTree& prm_;
-//     std::unique_ptr<ResOperator> rop_;
-//     std::unique_ptr<WellOperator> wop_;
-//     // std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSolver_;
-//     // std::unique_ptr<Dune::InverseOperator<WellVector, WellVector>> wellSolver_;
-//     // Dune::FlexibleSolver<ResOperator> resSolver_;
-//     // Dune::FlexibleSolver<WellOperator> wellSolver_;
-    
-// };
 
 // Count non-zeros in a matrix row
 template<class Row>
@@ -210,14 +111,14 @@ int countRowEntries(const Row& row) {
 }
 
 // Merge B matrices (well-to-reservoir) by vertical stacking
-inline void mergeWRMatrices(const std::vector<WRMatrix>& matrices, WRMatrix& mergedMatrix)
+inline void mergeWRMatrices(const std::vector<WRMatrix>& matrices, WRMatrix& mergedMatrix, const std::vector<std::vector<int>>& wellIndices, int numResDof)
 {
     if (matrices.empty()) {
         return;
     }
     
     // Count total rows and get number of columns
-    int numCols = matrices[0].M();
+    int numCols = numResDof;
     int totalRows = 0;
     for (const auto& matrix : matrices) {
         totalRows += matrix.N();
@@ -240,10 +141,15 @@ inline void mergeWRMatrices(const std::vector<WRMatrix>& matrices, WRMatrix& mer
     
     // Phase 2: Set column indices
     rowOffset = 0;
-    for (const auto& matrix : matrices) {
+    assert(wellIndices.size() == matrices.size());
+    for(size_t well=0; well<matrices.size(); ++well) {
+        const auto& matrix = matrices[well];
+        const auto& cells = wellIndices[well];
+        assert(cells.size() == matrix.M());  
         for (int i = 0; i < static_cast<int>(matrix.N()); ++i) {
             for (auto colIt = matrix[i].begin(); colIt != matrix[i].end(); ++colIt) {
-                mergedMatrix.addindex(rowOffset + i, colIt.index());
+                int cell = cells[colIt.index()];
+                mergedMatrix.addindex(rowOffset + i, cell);
             }
         }
         rowOffset += matrix.N();
@@ -252,10 +158,13 @@ inline void mergeWRMatrices(const std::vector<WRMatrix>& matrices, WRMatrix& mer
     
     // Phase 3: Copy values
     rowOffset = 0;
-    for (const auto& matrix : matrices) {
+    for(size_t well=0; well<matrices.size(); ++well) {
+        const auto& matrix = matrices[well];  
+        const auto& cells = wellIndices[well];    
         for (int i = 0; i < static_cast<int>(matrix.N()); ++i) {
             for (auto colIt = matrix[i].begin(); colIt != matrix[i].end(); ++colIt) {
-                mergedMatrix[rowOffset + i][colIt.index()] = *colIt;
+                int cell = cells[colIt.index()];
+                mergedMatrix[rowOffset + i][cell] = *colIt;
             }
         }
         rowOffset += matrix.N();
@@ -263,14 +172,14 @@ inline void mergeWRMatrices(const std::vector<WRMatrix>& matrices, WRMatrix& mer
 }
 
 // Merge C matrices (reservoir-to-well) by horizontal stacking
-inline void mergeRWMatrices(const std::vector<RWMatrix>& matrices, RWMatrix& mergedMatrix)
+inline void mergeRWMatrices(const std::vector<RWMatrix>& matrices, RWMatrix& mergedMatrix, const std::vector<std::vector<int>>& wellIndices, int numResDof)
 {
     if (matrices.empty()) {
         return;
     }
     
     // All matrices should have the same number of rows (reservoir cells)
-    int numRows = matrices[0].N();
+    int numRows = numResDof;
     
     // Count total columns (wells)
     int totalCols = 0;
@@ -283,37 +192,41 @@ inline void mergeRWMatrices(const std::vector<RWMatrix>& matrices, RWMatrix& mer
     mergedMatrix.setBuildMode(RWMatrix::random);
     
     // Phase 1: Set row sizes
-    for (int rowIdx = 0; rowIdx < numRows; ++rowIdx) {
-        int nnz = 0;
-        for (const auto& matrix : matrices) {
-            if (rowIdx < static_cast<int>(matrix.N())) {
-                nnz += countRowEntries(matrix[rowIdx]);
-            }
+    std::vector<int> row_sizes(numRows, 0);
+    for(const auto& cells : wellIndices) {
+        for(const auto& cell : cells) {
+            row_sizes[cell] += 1; // maybe larger than need rowsize
         }
-        mergedMatrix.setrowsize(rowIdx, nnz);
+    }
+    for (int row = 0; row < numRows; ++row) {
+        mergedMatrix.setrowsize(row, row_sizes[row]);
     }
     mergedMatrix.endrowsizes();
     
     // Phase 2: Set column indices
-    for (int rowIdx = 0; rowIdx < numRows; ++rowIdx) {
-        int colOffset = 0;
-        for (const auto& matrix : matrices) {
-            if (rowIdx < static_cast<int>(matrix.N())) {
-                for (auto colIt = matrix[rowIdx].begin(); colIt != matrix[rowIdx].end(); ++colIt) {
-                    mergedMatrix.addindex(rowIdx, colOffset + colIt.index());
-                }
+    int colOffset = 0;
+    for(size_t well=0; well < matrices.size(); ++well) {
+        const auto& matrix = matrices[well];  
+        const auto& cells = wellIndices[well];
+        for(size_t rowIdx = 0; rowIdx < matrix.N(); ++rowIdx) {     
+            int cell = cells[rowIdx];
+            for (auto colIt = matrix[rowIdx].begin(); colIt != matrix[rowIdx].end(); ++colIt) {
+                    mergedMatrix.addindex(cell, colOffset + colIt.index());
             }
-            colOffset += matrix.M();
         }
+        colOffset += matrix.M();
     }
     mergedMatrix.endindices();
     
     // Phase 3: Copy values
-    int colOffset = 0;
-    for (const auto& matrix : matrices) {
+    colOffset = 0;
+    for(size_t well=0; well < matrices.size(); ++well) {
+        const auto& matrix = matrices[well];  
+        const auto& cells = wellIndices[well];    
         for (int i = 0; i < static_cast<int>(matrix.N()); ++i) {
+            int cell = cells[i];
             for (auto colIt = matrix[i].begin(); colIt != matrix[i].end(); ++colIt) {
-                mergedMatrix[i][colOffset + colIt.index()] = *colIt;
+                mergedMatrix[cell][colOffset + colIt.index()] = *colIt;
             }
         }
         colOffset += matrix.M();
@@ -399,7 +312,7 @@ inline void createDiagonalBlockMatrix(const std::vector<WWMatrix>& matrices, WWM
 class WellMatrixMerger
 {
 public:
-    WellMatrixMerger() = default;
+    WellMatrixMerger(int numResDof): numResDof_(numResDof) {}
     
     // Add a well to the merger
     void addWell(const WRMatrix& B, const RWMatrix& C, const WWMatrix& D, 
@@ -409,8 +322,9 @@ public:
         C_matrices_.push_back(C);
         D_matrices_.push_back(D);
         wellIndices_.push_back(wellIndex);
+        wellCells_.push_back(cellIndices);
         wellNames_.push_back(wellName);
-        
+         
         // Map cell indices to well indices
         for (const auto& cellIdx : cellIndices) {
             cellToWellMap_[cellIdx] = wellIndex;
@@ -421,10 +335,10 @@ public:
     void finalize()
     {
         // Merge B matrices (well-to-reservoir)
-        mergeWRMatrices(B_matrices_, mergedB_);
+        mergeWRMatrices(B_matrices_, mergedB_, wellCells_, numResDof_);
         
         // Merge C matrices (reservoir-to-well)
-        mergeRWMatrices(C_matrices_, mergedC_);
+        mergeRWMatrices(C_matrices_, mergedC_, wellCells_, numResDof_);
         
         // Create diagonal block matrix for D matrices (well-to-well)
         createDiagonalBlockMatrix(D_matrices_, mergedD_);
@@ -473,10 +387,12 @@ public:
     }
     
 private:
+    int numResDof_;
     std::vector<WRMatrix> B_matrices_;
     std::vector<RWMatrix> C_matrices_;
     std::vector<WWMatrix> D_matrices_;
     std::vector<int> wellIndices_;
+    std::vector<std::vector<int>> wellCells_;
     std::vector<std::string> wellNames_;
     std::map<int, int> cellToWellMap_;
     

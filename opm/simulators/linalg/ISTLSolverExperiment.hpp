@@ -110,7 +110,8 @@ namespace Opm
                                 // Define helper constants for accessing MultiTypeBlockMatrix elements
                                 constexpr auto _0 = Dune::Indices::_0;
                                 constexpr auto _1 = Dune::Indices::_1;
-                                Opm::WellMatrixMerger merger;
+                                RRMatrix A_copy = *Parent::matrix_;
+                                Opm::WellMatrixMerger merger(A_copy.N());
                                 WRMatrix B1;
                                 RWMatrix C1;
                                 WWMatrix D1;
@@ -125,7 +126,7 @@ namespace Opm
                                 this->simulator_.problem().wellModel().addBCDMatrix(b_matrices, c_matrices, d_matrices, wcells, residual);
                                 for (size_t i = 0; i < b_matrices.size(); ++i)
                                 {
-                                        merger.addWell(b_matrices[i], c_matrices[i], d_matrices[i], cells1, static_cast<int>(i), "Well" + std::to_string(i + 1));
+                                        merger.addWell(b_matrices[i], c_matrices[i], d_matrices[i], wcells[i], static_cast<int>(i), "Well" + std::to_string(i + 1));
                                 }
                                 //   merger.addWell(B1, C1, D1, cells1, 0, "Well1");
 
@@ -137,7 +138,7 @@ namespace Opm
                                 const auto &mergedB = merger.getMergedB();
                                 const auto &mergedC = merger.getMergedC();
                                 const auto &mergedD = merger.getMergedD();
-                                RRMatrix A_copy = *Parent::matrix_;
+                                
                                 RWMatrix C_copy = mergedC;
                                 WRMatrix B_copy = mergedB;
                                 WWMatrix D_copy = mergedD;
