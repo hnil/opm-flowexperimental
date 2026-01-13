@@ -46,16 +46,19 @@ namespace TTag {
 
     template<class TypeTag>
     struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
+
+    template<class TypeTag>
+        struct AvoidElementContext<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = true; };
     // flow's well model only works with surface volumes
-    template<class TypeTag>
-    struct BlackoilConserveSurfaceVolume<TypeTag, TTag::EclFlowProblemTest> {
-        static constexpr bool value = false;
-    };
-    // the values for the residual are for the whole cell instead of for a cubic meter of the cell
-    template<class TypeTag>
-    struct UseVolumetricResidual<TypeTag, TTag::EclFlowProblemTest> {
-        static constexpr bool value = false;
-    };
+    // template<class TypeTag>
+    // struct BlackoilConserveSurfaceVolume<TypeTag, TTag::EclFlowProblemTest> {
+    //     static constexpr bool value = false;
+    // }; 
+    // // the values for the residual are for the whole cell instead of for a cubic meter of the cell
+    // template<class TypeTag>
+    // struct UseVolumetricResidual<TypeTag, TTag::EclFlowProblemTest> {
+    //     static constexpr bool value = false;
+    // };
     
     // use flow's linear solver backend for now
     template<class TypeTag>

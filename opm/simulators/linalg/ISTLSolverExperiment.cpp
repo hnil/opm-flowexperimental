@@ -38,7 +38,10 @@ namespace Opm {
     {
         // Here we would implement the solver logic for the system S * x = b
         // This is a placeholder implementation
-        std::cout << "Solving system with merged matrices..." << std::endl;
+        int verbosity = prm.get<int>("verbosity");           // Reduce output verbosity
+        if(verbosity){
+            std::cout << "Solving system with merged matrices..." << std::endl;
+        }
          const Dune::MatrixAdapter<SystemMatrix, SystemVector, SystemVector> S_linop(S);
     //TailoredPrecondDiag precond(S,prm);
     Opm::PropertyTree precond_prm = prm.get_child("preconditioner");
@@ -47,11 +50,13 @@ namespace Opm {
     // Set solver parameters
     double linsolve_tol = prm.get<double>("tol");  // Less strict tolerance
     int max_iter = prm.get<int>("maxiter");           // Limit iterations
-    int verbosity = prm.get<int>("verbosity");           // Reduce output verbosity
+   
     Dune::InverseOperatorResult result;
     // Create and run the solver with error handling
     try {
+        if(verbosity > 0){
         std::cout << "Solving system with BiCGSTAB solver..." << std::endl;
+        }
         
         auto solver = Dune::BiCGSTABSolver<SystemVector>(
             S_linop,
@@ -63,12 +68,14 @@ namespace Opm {
         auto residual(b);
         solver.apply(x, residual, result);
         // Print results
+        if(verbosity > 10){
         std::cout << "\nSolver results:" << std::endl;
         std::cout << "  Converged: " << (result.converged ? "Yes" : "No") << std::endl;
         std::cout << "  Iterations: " << result.iterations << std::endl;
         std::cout << "  Reduction: " << result.reduction << std::endl;
         std::cout << "  Elapsed time: " << result.elapsed << " seconds" << std::endl;
-        
+        std::cout << "\nMatrix merger example completed successfully!" << std::endl;
+        }
         //printVector("Solution x_r", x[_0]);
         //printVector("Solution x_w", x[_1]);
     }
@@ -77,7 +84,7 @@ namespace Opm {
         //return result;
     }
     
-    std::cout << "\nMatrix merger example completed successfully!" << std::endl;
+    
     return result;
     }
 }
