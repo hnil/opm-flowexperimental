@@ -2,6 +2,8 @@
 #include <opm/simulators/linalg/SystemPreconditioner.hpp>
 #include <opm/simulators/linalg/FlexibleSolver_impl.hpp>
 
+
+
 namespace Opm {
     SystemPreconditioner::SystemPreconditioner(const SystemMatrix& S,const std::function<ResVector()> &weightsCalculator,int pressureIndex, 
     const Opm::PropertyTree& prm) :

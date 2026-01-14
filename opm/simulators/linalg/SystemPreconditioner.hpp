@@ -76,6 +76,7 @@ public:
     virtual void post(SystemVector& /*x*/) override {}
     virtual Dune::SolverCategory::Category category() const override {
         return Dune::SolverCategory::sequential;
+        //return SolverCategory::overlapping;
     }
     
 private:

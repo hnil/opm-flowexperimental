@@ -8,7 +8,129 @@
 #include <dune/istl/multitypeblockvector.hh>
 #include "WellMatrixMerger.hpp"
 #include "SystemPreconditioner.hpp"
-namespace Opm {
+namespace Dune
+{
+    class SeqComm
+    {
+    public:
+        using size_type = std::size_t;
+        // SolverCategory::Category category () const {
+        //     return category_;
+        // }
+
+        // const Communication<MPI_Comm>& communicator() const
+        // {
+        //   return cc;
+        // }
+        static constexpr size_type size()
+        {
+            return 0;
+        }
+        template <typename T>
+        void project(T & /*x*/) const
+        {
+            // No operation for sequential communicator
+        }
+        template <typename T1, typename T2>
+        void dot(const T1 &x, const T1 &y, T2 &result) const
+        {
+            result = x.dot(y);
+        }
+        template <typename T>
+        double norm(const T &x) const
+        {
+            return x.two_norm();
+        };
+        template <typename T>
+        void copyOwnerToAll(const T &x,T &y) const
+        {
+            y = x;
+        }
+    };
+    template <typename... Args>
+    class MultiCommunicator
+        : public std::tuple<Args...>
+    {
+        /** \brief Helper type */
+        typedef std::tuple<Args...> TupleType;
+        typedef MultiCommunicator<Args...> type;
+        using field_type = double;
+
+    public:
+        using std::tuple<Args...>::tuple;
+        using size_type = std::size_t;
+
+            /**
+     * @brief Get Solver Category.
+     * @return The Solver Category.
+     */
+        // SolverCategory::Category category () const {
+        //     return category_;
+        // }
+
+        // const Communication<MPI_Comm>& communicator() const
+        // {
+        //   return cc;
+        // }
+
+        static constexpr size_type size()
+        {
+            return sizeof...(Args);
+        }
+        /** \brief Number of elements
+         */
+        static constexpr size_type N()
+        {
+            return sizeof...(Args);
+        }
+        template <size_type index>
+        typename std::tuple_element<index, TupleType>::type &
+        operator[]([[maybe_unused]] const std::integral_constant<size_type, index> indexVariable)
+        {
+            return std::get<index>(*this);
+        }
+        template <size_type index>
+        const typename std::tuple_element<index, TupleType>::type &
+        operator[]([[maybe_unused]] const std::integral_constant<size_type, index> indexVariable) const
+        {
+            return std::get<index>(*this);
+        }
+
+        template <typename T>
+        void project(T &x) const
+        {
+            using namespace Dune::Hybrid;
+            //auto size = index_constant<sizeof...(Args)>();
+            forEach(integralRange(Hybrid::size(*this)), [&](auto &&i)
+                    { (*this)[i].project(x[i]); });
+        }
+        template <typename T1, typename T2>
+        void dot(const T1 &x, const T1 &y, T2& result) const
+        {
+            result = field_type(0);
+            using namespace Dune::Hybrid;
+            forEach(integralRange(Hybrid::size(*this)), [&](auto &&i)
+                    { (*this)[i].dot(x[i],y[i],result);std::cout << " Dot partial result " << i << std::endl; } );
+        }
+        template <typename T>
+        field_type norm(const T &x) const
+        {
+            using namespace Dune::Hybrid;
+            return accumulate(integralRange(Hybrid::size(*this)), field_type(0), [&](auto &&a, auto &&i)
+                              { return a + (*this)[i].norm(x[i]); });
+        }
+        template <typename T>
+        void copyOwnerToAll(const T &x,T &y) const
+        {
+            using namespace Dune::Hybrid;
+            forEach(integralRange(Hybrid::size(*this)), [&](auto &&i)
+                    { (*this)[i].copyOwnerToAll(x[i], y[i]); });
+        }
+        // Explicit template instantiations
+    };
+}
+namespace Opm
+{
         namespace SystemSolver {
   const int numResDofs = 3;
             const int numWellDofs = 4;
@@ -43,6 +165,7 @@ namespace Opm {
             std::cout << "Solving system with merged matrices..." << std::endl;
         }
          const Dune::MatrixAdapter<SystemMatrix, SystemVector, SystemVector> S_linop(S);
+         //const Dune::OverlappingSchwarzOperator<SystemVector, SystemVector, Dune::OwnerOverlapCopyCommunication<int, int> > S_linop(S_linop, comm);
     //TailoredPrecondDiag precond(S,prm);
     Opm::PropertyTree precond_prm = prm.get_child("preconditioner");
     SystemPreconditioner precond(S,weightCalculator, pressureIndex, precond_prm);
@@ -87,6 +210,70 @@ namespace Opm {
     
     return result;
     }
-}
-}
 
+    Dune::InverseOperatorResult solveSystem(const SystemMatrix& S, SystemVector& x, const SystemVector& b, 
+        const std::function<RVector()> &weightCalculator,int pressureIndex, const Opm::PropertyTree& prm,
+        const Dune::OwnerOverlapCopyCommunication<int, int>& comm)
+    {
+        // Here we would implement the solver logic for the system S * x = b
+        // This is a placeholder implementation
+        int verbosity = prm.get<int>("verbosity");           // Reduce output verbosity
+        if(verbosity){
+            std::cout << "Solving system with merged matrices..." << std::endl;
+        }
+         //const Dune::MatrixAdapter<SystemMatrix, SystemVector, SystemVector> S_linop(S);
+         using SystemComm = Dune::MultiCommunicator<const Dune::OwnerOverlapCopyCommunication<int, int>&,const Dune::SeqComm&>;
+         Dune::SeqComm seqComm;
+         SystemComm systemComm(comm,seqComm);
+         
+         const Dune::OverlappingSchwarzOperator<SystemMatrix, SystemVector, SystemVector, SystemComm > S_linop(S, systemComm);
+         std::shared_ptr< Dune::ScalarProduct<SystemVector> > scalarproduct = Dune::createScalarProduct<SystemVector, SystemComm>(systemComm, S_linop.category());
+         //
+    //TailoredPrecondDiag precond(S,prm);
+    Opm::PropertyTree precond_prm = prm.get_child("preconditioner");
+    SystemPreconditioner precond(S,weightCalculator, pressureIndex, precond_prm);
+    Dune::BlockPreconditioner<SystemVector, SystemVector, SystemComm,SystemPreconditioner> sysprecond(precond, systemComm);
+    
+    // Set solver parameters
+    double linsolve_tol = prm.get<double>("tol");  // Less strict tolerance
+    int max_iter = prm.get<int>("maxiter");           // Limit iterations
+   
+    Dune::InverseOperatorResult result;
+    // Create and run the solver with error handling
+    try {
+        if(verbosity > 0){
+        std::cout << "Solving system with BiCGSTAB solver parallel..." << comm.communicator().rank() << std::endl;
+        }
+        
+        auto solver = Dune::BiCGSTABSolver<SystemVector>(
+            S_linop,
+            *scalarproduct,
+            sysprecond,
+            linsolve_tol,
+            max_iter,
+            verbosity
+        );
+        auto residual(b);
+        solver.apply(x, residual, result);
+        // Print results
+        if(verbosity > 10){
+        std::cout << "\nSolver results:" << std::endl;
+        std::cout << "  Converged: " << (result.converged ? "Yes" : "No") << std::endl;
+        std::cout << "  Iterations: " << result.iterations << std::endl;
+        std::cout << "  Reduction: " << result.reduction << std::endl;
+        std::cout << "  Elapsed time: " << result.elapsed << " seconds" << std::endl;
+        std::cout << "\nMatrix merger example completed successfully!" << std::endl;
+        }
+        //printVector("Solution x_r", x[_0]);
+        //printVector("Solution x_w", x[_1]);
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error solving system: " << e.what() << std::endl;
+        //return result;
+    }
+    
+    
+    return result;
+    }
+}
+    }

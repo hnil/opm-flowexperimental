@@ -23,10 +23,13 @@ namespace Opm
                     Dune::MultiTypeBlockVector<RRMatrix, RWMatrix>,
                     Dune::MultiTypeBlockVector<WRMatrix, WWMatrix>>;
                 using SystemVector = Dune::MultiTypeBlockVector<RVector, WVector>;
-
+                using Comm = Dune::OwnerOverlapCopyCommunication<int, int>;
                 Dune::InverseOperatorResult solveSystem(const SystemMatrix &S, SystemVector &x, const SystemVector &b,  
                         const std::function<RVector()> &weightCalculator,
-                        int pressureIndex, const Opm::PropertyTree &prm);
+                        int pressureIndex, const Opm::PropertyTree &prm, const Comm &comm);
+                Dune::InverseOperatorResult solveSystem(const SystemMatrix &S, SystemVector &x, const SystemVector &b,  
+                        const std::function<RVector()> &weightCalculator,
+                        int pressureIndex, const Opm::PropertyTree &prm);        
                
         } // namespace SystemSolver
         template <class TypeTag>
@@ -168,9 +171,24 @@ namespace Opm
                                 SystemVector r_s{r_res, w_res};
                                 const auto& prm_system = prm.get_child("system_solver");
                                 std::function<RVector()> weightCalculator = this->getWeightsCalculator(prm_system.get_child("preconditioner.reservoir_solver"), this->getMatrix(), pressureIndex);
-                                const auto result = SystemSolver::solveSystem(S, x_s, r_s, weightCalculator, pressureIndex, prm_system);
+                                #if HAVE_MPI
+                                        using Comm = Dune::OwnerOverlapCopyCommunication<int, int>;
+                                #endif
+                                        
+                                const Comm& comm = *(this->comm_.get());        
+                                if(this->comm_->communicator().size() > 1)
+                                {
+                                        std::cout << "Parallel run with system solver..." << this->comm_->communicator().rank() <<  std::endl;
+                                        const auto result = SystemSolver::solveSystem(S, x_s, r_s, weightCalculator, pressureIndex, prm_system, comm);
+                                        this->iterations_ = result.iterations;
+                                }else
+                                {
+                                   const auto result = SystemSolver::solveSystem(S, x_s, r_s, weightCalculator, pressureIndex, prm_system);        // Serial run
+                                   this->iterations_ = result.iterations;
+                                }
+                                
                                 x = x_s[_0];
-                                this->iterations_ = result.iterations;
+                                
                         }else
                         {
                                 // Call the base class solve method
