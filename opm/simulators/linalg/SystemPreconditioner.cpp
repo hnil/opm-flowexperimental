@@ -37,29 +37,102 @@ namespace Opm {
             const auto& r_w = d[_1];
 
             auto wRes = r_w;
-            C.mv(v[_0], wRes);
+            auto resRes = r_r;
+            //C.mv(v[_0], wRes);
+
             WellVector wSol(wRes.size());
-            //wSol = v[_1];
             wSol = 0.0;
             double well_tol = prm_.get<double>("well_solver.tol");
             wellSolver_->apply(wSol, wRes, well_tol, well_result);
-            v[_1] = wSol;
+            //v[_1] = wSol;
             // Use reservoir solver
             
-            auto resRes = r_r;
+            
             ResVector resSol(resRes.size());
             resSol = 0.0;
             B.mmv(wSol, resRes);
             Dune::InverseOperatorResult res_result;
             double res_tol = prm_.get<double>("reservoir_solver.tol");
             resSolver_->apply(resSol, resRes, res_tol, res_result);
-            v[_0] = resSol;
+            
             // solve well again
             
             wRes = d[_1];
-            C.mmv(v[_0], wRes);
+            //wRes = wSol; //????
+            C.mmv(resSol, wRes);
             wSol = 0.0;
             wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            
+            v[_0] = resSol;
+            v[_1] = wSol;
+            
+            // update well rhs
+
+            // update residual
+            // S_[1][_0].mv(vPart, wellPart, -1.0, 1.0);
+        
+    }
+    SystemPreconditionerParallel::SystemPreconditionerParallel(const SystemMatrix& S,const std::function<ResVector()> &weightsCalculator,int pressureIndex, 
+                                               const Opm::PropertyTree& prm,const SystemComm& syscomm) :
+      S_(S), prm_(prm), syscomm_(syscomm) {
+            auto rop = std::make_unique<ResOperator>(S[_0][_0]);
+            auto wop = std::make_unique<WellOperator>(S[_1][_1]);
+            auto resprm = prm_.get_child("reservoir_solver");
+            auto wellprm = prm_.get_child("well_solver");
+            //std::function<ResVector()> weightsCalculatorRes;
+            auto rsol = std::make_unique<ResFlexibleSolverType>(*rop,
+                                                                syscomm_[_0],   
+                                                                resprm,
+                                                                weightsCalculator,
+                                                                pressureIndex);
+            std::function<WellVector()> weightsCalculatorWell;
+            auto wsol = std::make_unique<WellFlexibleSolverType>(*wop, wellprm,
+                                                             weightsCalculatorWell,
+                                                             pressureIndex); 
+            this->rop_ = std::move(rop);
+            this->wop_ = std::move(wop);
+            this->resSolver_ = std::move(rsol);
+            this->wellSolver_ = std::move(wsol);
+
+        }
+    
+    void 
+    SystemPreconditionerParallel::apply(SystemVector& v, const SystemVector& d) {
+            // change order?
+            Dune::InverseOperatorResult well_result;
+            const auto& C = S_[_1][_0];
+            const auto& B = S_[_0][_1];
+            const auto& r_r = d[_0];
+            const auto& r_w = d[_1];
+
+            auto wRes = r_w;
+            auto resRes = r_r;
+            //C.mv(v[_0], wRes);
+
+            WellVector wSol(wRes.size());
+            wSol = 0.0;
+            double well_tol = prm_.get<double>("well_solver.tol");
+            wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            //v[_1] = wSol;
+            // Use reservoir solver
+            
+            
+            ResVector resSol(resRes.size());
+            resSol = 0.0;
+            B.mmv(wSol, resRes);
+            Dune::InverseOperatorResult res_result;
+            double res_tol = prm_.get<double>("reservoir_solver.tol");
+            resSolver_->apply(resSol, resRes, res_tol, res_result);
+            
+            // solve well again
+            
+            wRes = d[_1];
+            //wRes = wSol; //????
+            C.mmv(resSol, wRes);
+            wSol = 0.0;
+            wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            
+            v[_0] = resSol;
             v[_1] = wSol;
             
             // update well rhs
