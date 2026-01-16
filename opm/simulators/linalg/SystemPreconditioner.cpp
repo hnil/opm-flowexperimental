@@ -122,6 +122,7 @@ namespace Opm {
             B.mmv(wSol, resRes);
             Dune::InverseOperatorResult res_result;
             double res_tol = prm_.get<double>("reservoir_solver.tol");
+            syscomm_[_0].copyOwnerToAll(resRes,resRes);
             resSolver_->apply(resSol, resRes, res_tol, res_result);
             
             // solve well again
@@ -131,7 +132,8 @@ namespace Opm {
             C.mmv(resSol, wRes);
             wSol = 0.0;
             wellSolver_->apply(wSol, wRes, well_tol, well_result);
-            
+
+            syscomm_[_0].copyOwnerToAll(resSol,resSol);
             v[_0] = resSol;
             v[_1] = wSol;
             
