@@ -8,6 +8,7 @@
 #include <dune/istl/multitypeblockvector.hh>
 #include "WellMatrixMerger.hpp"
 #include "SystemPreconditioner.hpp"
+#include <opm/common/ErrorMacros.hpp>
 namespace Dune
 {
     class SeqComm
@@ -47,6 +48,57 @@ namespace Dune
             y = x;
         }
     };
+
+  //template <typename ColCom> Communication<MPI_Comm>
+    class JacComm
+    {
+    public:
+        using size_type = std::size_t;
+        // SolverCategory::Category category () const {
+        //     return category_;
+        // }
+
+        // const Communication<MPI_Comm>& communicator() const
+        // {
+        //   return cc;
+        // }
+    public:
+      //JacComm(const ColCom& colcom): colcom_(colcom){}
+      JacComm(): colcom_(MPI_COMM_WORLD){}
+        static constexpr size_type size()
+        {
+            return 0;
+        }
+        template <typename T>
+        void project(T & /*x*/) const
+        {
+            // No operation for sequential communicator
+        }
+      
+        template <typename T1, typename T2>
+        void dot(const T1 &x, const T1 &y, T2 &result) const
+        {
+            result = x.dot(y);
+            result = colcom_.sum(result);
+        }
+      
+        template <typename T>
+        double norm(const T &x) const
+        {
+            double result = x.two_norm();
+            result = colcom_.sum(result);
+            return result;
+        }
+      
+        template <typename T>
+        void copyOwnerToAll(const T &x,T &y) const
+        {
+            y = x;
+        }
+       private:
+       Communication<MPI_Comm> colcom_;
+    };
+  
     template <typename... Args>
     class MultiCommunicator
         : public std::tuple<Args...>
@@ -110,7 +162,11 @@ namespace Dune
             result = field_type(0);
             using namespace Dune::Hybrid;
             forEach(integralRange(Hybrid::size(*this)), [&](auto &&i)
-                    { (*this)[i].dot(x[i],y[i],result);std::cout << " Dot partial result " << i << std::endl; } );
+            { double result_tmp = 0;
+              (*this)[i].dot(x[i],y[i],result_tmp);
+              result += result_tmp;
+              //std::cout << " Dot partial result " << i << " r " << result <<std::endl;
+            } );
         }
         template <typename T>
         field_type norm(const T &x) const
@@ -180,16 +236,34 @@ namespace Opm
         if(verbosity > 0){
         std::cout << "Solving system with BiCGSTAB solver..." << std::endl;
         }
-        
-        auto solver = Dune::BiCGSTABSolver<SystemVector>(
-            S_linop,
-            precond,
-            linsolve_tol,
-            max_iter,
-            verbosity
-        );
+        const std::string solver_type = prm.get<std::string>("solver");
+        using AbstractSolverType = Dune::InverseOperator<SystemVector, SystemVector>;
+        std::shared_ptr<AbstractSolverType> linsolver;
+        if( solver_type == "bicgstab"){
+            linsolver = std::make_shared<Dune::BiCGSTABSolver<SystemVector>>(
+                                                                             S_linop,
+                                                                             precond,
+                                                                             linsolve_tol,
+                                                                             max_iter,
+                                                                             verbosity
+                                                                             );
+        } else if ( solver_type == "fgmres"){
+          int restart = prm.get<int>("restart", 15);
+          linsolver = std::make_shared<Dune::RestartedGMResSolver<SystemVector>>(
+                                                                               S_linop,
+                                                                               precond,
+                                                                               linsolve_tol,
+                                                                               restart,
+                                                                               max_iter,
+                                                                               verbosity
+                                                                             );
+        }else {
+          OPM_THROW(std::invalid_argument,
+                      "Properties: Solver " + solver_type + " not known.");
+        }
         auto residual(b);
-        solver.apply(x, residual, result);
+        linsolver->apply(x, residual, result);
+        //assert(false);//debug
         // Print results
         if(verbosity > 10){
         std::cout << "\nSolver results:" << std::endl;
@@ -217,13 +291,15 @@ namespace Opm
     {
         // Here we would implement the solver logic for the system S * x = b
         // This is a placeholder implementation
-        int verbosity = prm.get<int>("verbosity");           // Reduce output verbosity
+          const bool is_iorank = comm.communicator().rank() == 0;
+        const int verbosity = is_iorank ? prm.get<int>("verbosity", 0) : 0;
         if(verbosity){
             std::cout << "Solving system with merged matrices..." << std::endl;
         }
          //const Dune::MatrixAdapter<SystemMatrix, SystemVector, SystemVector> S_linop(S);
-         using SystemComm = Dune::MultiCommunicator<const Dune::OwnerOverlapCopyCommunication<int, int>&,const Dune::SeqComm&>;
-         Dune::SeqComm seqComm;
+        using WellComm = Dune::JacComm;
+        using SystemComm = Dune::MultiCommunicator<const Dune::OwnerOverlapCopyCommunication<int, int>&,const WellComm&>;
+         WellComm seqComm;
          SystemComm systemComm(comm,seqComm);
          
          const Dune::OverlappingSchwarzOperator<SystemMatrix, SystemVector, SystemVector, SystemComm > S_linop(S, systemComm);
@@ -242,19 +318,39 @@ namespace Opm
     // Create and run the solver with error handling
     try {
         if(verbosity > 0){
-        std::cout << "Solving system with BiCGSTAB solver parallel..." << comm.communicator().rank() << std::endl;
+        std::cout << "Solving system with BiCGSTAB solver parallel...rank.." << comm.communicator().rank() << std::endl;
         }
-        
-        auto solver = Dune::BiCGSTABSolver<SystemVector>(
-            S_linop,
-            *scalarproduct,
-            sysprecond,
-            linsolve_tol,
-            max_iter,
-            verbosity
-        );
+        using AbstractSolverType = Dune::InverseOperator<SystemVector, SystemVector>;
+        std::shared_ptr<AbstractSolverType> linsolver;
+        const std::string solver_type = prm.get<std::string>("solver");
+        if( solver_type == "bicgstab"){
+            linsolver = std::make_shared<Dune::BiCGSTABSolver<SystemVector>>(
+                                                                             S_linop,
+                                                                             *scalarproduct,
+                                                                             sysprecond,
+                                                                             linsolve_tol,
+                                                                             max_iter,
+                                                                             verbosity
+                                                                             );
+        }else if ( solver_type == "fgmres"){
+          int restart = prm.get<int>("restart", 15);
+          linsolver = std::make_shared<Dune::RestartedGMResSolver<SystemVector>>(
+                                                                             S_linop,
+                                                                             *scalarproduct,
+                                                                             sysprecond,
+                                                                             linsolve_tol,
+                                                                             restart,
+                                                                             max_iter,
+                                                                             verbosity
+                                                                             );
+        }else {
+          OPM_THROW(std::invalid_argument,
+                      "Properties: Solver " + solver_type + " not known.");
+        }
         auto residual(b);
-        solver.apply(x, residual, result);
+        linsolver->apply(x, residual, result);
+        //assert(false);
+                      
         // Print results
         if(verbosity > 10){
         std::cout << "\nSolver results:" << std::endl;

@@ -178,7 +178,7 @@ namespace Opm
                                 const Comm& comm = *(this->comm_.get());        
                                 if(this->comm_->communicator().size() > 1)
                                 {
-                                        std::cout << "Parallel run with system solver..." << this->comm_->communicator().rank() <<  std::endl;
+                                  //std::cout << "Parallel run with system solver..." << this->comm_->communicator().rank() <<  std::endl;
                                         const auto result = SystemSolver::solveSystem(S, x_s, r_s, weightCalculator, pressureIndex, prm_system, comm);
                                         this->iterations_ = result.iterations;
                                 }else
