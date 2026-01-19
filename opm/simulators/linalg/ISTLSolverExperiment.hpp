@@ -167,6 +167,8 @@ namespace Opm
                                                 well_dof++;
                                         }
                                 }
+                                //std::cout << "Well residual norm: " << w_res.two_norm2() << std::endl;
+                                w_res = 0.0;// this should be applied to reservoir at this point
                                 SystemVector x_s{x_r, x_w};
                                 SystemVector r_s{r_res, w_res};
                                 const auto& prm_system = prm.get_child("system_solver");

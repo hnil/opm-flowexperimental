@@ -38,16 +38,19 @@ namespace Opm {
 
             auto wRes = r_w;
             auto resRes = r_r;
-            //C.mv(v[_0], wRes);
 
-            WellVector wSol(wRes.size());
+            //C.mv(v[_0], wRes);//NB NB seems to be critical
+            //assert(false); 
+            WellVector wSol(wRes.size());       
             wSol = 0.0;
             double well_tol = prm_.get<double>("well_solver.tol");
-            wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            //double tmp1 = wRes.two_norm2();
+            //double tmp2 = wSol.two_norm2();
+            assert(wRes.two_norm2() <1e-10);
+            //wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            
             //v[_1] = wSol;
-            // Use reservoir solver
-            
-            
+            // Use reservoir solverxs            
             ResVector resSol(resRes.size());
             resSol = 0.0;
             B.mmv(wSol, resRes);
@@ -57,7 +60,7 @@ namespace Opm {
             
             // solve well again
             
-            wRes = d[_1];
+            wRes = r_w;
             //wRes = wSol; //????
             C.mmv(resSol, wRes);
             wSol = 0.0;
@@ -107,12 +110,14 @@ namespace Opm {
 
             auto wRes = r_w;
             auto resRes = r_r;
-            //C.mv(v[_0], wRes);
+            //assert(v[_0].two_norm2() <1e-30);
+            //assert(r_w.two_norm2() <1e-30);
+            //C.mv(v[_0], wRes); 
 
             WellVector wSol(wRes.size());
             wSol = 0.0;
             double well_tol = prm_.get<double>("well_solver.tol");
-            wellSolver_->apply(wSol, wRes, well_tol, well_result);
+            //wellSolver_->apply(wSol, wRes, well_tol, well_result); // seems to do things not good
             //v[_1] = wSol;
             // Use reservoir solver
             
