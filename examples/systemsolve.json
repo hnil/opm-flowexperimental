@@ -52,7 +52,7 @@
             "reservoir_solver": {
                 "maxiter": "1",
                 "tol": "0.0050000000000000001",
-                "verbosity": "0",
+                "verbosity": "3",
                 "solver": "loopsolver",
                 "preconditioner": {
                     "type": "cpr",
@@ -65,12 +65,12 @@
                         "type": "paroverilu0",
                         "relaxation": "1"
                     },
-                    "verbosity": "0",
+                    "verbosity": "3",
                     "coarsesolver": {
                         "maxiter": "1",
                         "tol": "0.10000000000000001",
                         "solver": "loopsolver",
-                        "verbosity": "0",
+                        "verbosity": "3",
                         "preconditioner": {
                             "type": "amg",
                             "alpha": "0.33333333333300003",
@@ -81,7 +81,7 @@
                             "post_smooth": "1",
                             "beta": "0",
                             "smoother": "ilu0",
-                            "verbosity": "0",
+                            "verbosity": "3",
                             "maxlevel": "15",
                             "skip_isolated": "0",
                             "accumulate": "1",

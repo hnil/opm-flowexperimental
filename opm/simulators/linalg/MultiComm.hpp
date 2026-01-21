@@ -75,8 +75,10 @@ namespace Dune
         template <typename T>
         double norm(const T &x) const
         {
-            double result = x.two_norm();
+            //double result = x.two_norm();
+            double result = x.dot(x);
             result = colcom_.sum(result);
+            result = std::sqrt(result);
             return result;
         }
       
@@ -150,11 +152,14 @@ namespace Dune
             field_type result(0);
             using namespace Dune::Hybrid;
             forEach(integralRange(Hybrid::size(*this)), [&](auto &&i)
-            { double result_tmp = (*this)[i].norm(x[i]);
-              result += result_tmp;
+            { 
+                //double result_tmp = (*this)[i].norm(x[i]);
+                double result_tmp = 0.0;
+                (*this)[i].dot(x[i], x[i], result_tmp);
+                result += result_tmp;
               //std::cout << " Dot partial result " << i << " r " << result <<std::endl;
             } );
-            return result;
+            return std::sqrt(result);
         }
         template <typename T>
         void copyOwnerToAll(const T &x,T &y) const

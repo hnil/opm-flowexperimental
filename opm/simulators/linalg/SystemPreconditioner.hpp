@@ -86,6 +86,7 @@ private:
     std::unique_ptr<ResOperator> rop_;
     std::unique_ptr<WellOperator> wop_;
     std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSolver_;
+    std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSmoother_;
     std::unique_ptr<Dune::InverseOperator<WellVector, WellVector>> wellSolver_;
     
 };
@@ -136,6 +137,7 @@ private:
     std::unique_ptr<ResOperator> rop_;
     std::unique_ptr<WellOperator> wop_;
     std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSolver_;
+    std::unique_ptr<Dune::InverseOperator<ResVector, ResVector>> resSmoother_;
     std::unique_ptr<Dune::InverseOperator<WellVector, WellVector>> wellSolver_;
     
 };
