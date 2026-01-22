@@ -96,7 +96,8 @@ class SystemPreconditionerParallel : public Dune::Preconditioner<SystemVector, S
 public:
     
     using WellComm = Dune::JacComm;
-    using SystemComm = Dune::MultiCommunicator<const Dune::OwnerOverlapCopyCommunication<int, int>&,const WellComm&>;
+    using ResComm = Dune::OwnerOverlapCopyCommunication<int, int>;
+    using SystemComm = Dune::MultiCommunicator<const ResComm&, const WellComm&>;
     using RRMatrix = Dune::BCRSMatrix<Opm::MatrixBlock<double, numResDofs, numResDofs>>;
     using RWMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<double, numResDofs, numWellDofs>>;
     using WRMatrix = Dune::BCRSMatrix<Dune::FieldMatrix<double, numWellDofs, numResDofs>>;
@@ -108,9 +109,10 @@ public:
 
     using ResVector = Dune::BlockVector<Dune::FieldVector<double, numResDofs>>;
     using WellVector = Dune::BlockVector<Dune::FieldVector<double, numWellDofs>>;
-    using ResOperator = Dune::MatrixAdapter<RRMatrix, ResVector, ResVector>;
+    using ResOperator = Dune::OverlappingSchwarzOperator<RRMatrix, ResVector, ResVector, ResComm >; //
+    //using ResOperator = Dune::MatrixAdapter<RRMatrix, ResVector, ResVector>;
     using ResFlexibleSolverType = Dune::FlexibleSolver<ResOperator>;
-    using WellOperator = Dune::MatrixAdapter<WWMatrix, WellVector, WellVector>;
+    using WellOperator = Dune::MatrixAdapter<WWMatrix, WellVector, WellVector>;//NB not parallel for now
     using WellFlexibleSolverType = Dune::FlexibleSolver<WellOperator>;        
     static constexpr auto _0 = Dune::Indices::_0;
     static constexpr auto _1 = Dune::Indices::_1;
@@ -126,8 +128,8 @@ public:
     virtual void pre(SystemVector& /*x*/, SystemVector& /*b*/) override {}
     virtual void post(SystemVector& /*x*/) override {}
     virtual Dune::SolverCategory::Category category() const override {
-        return Dune::SolverCategory::sequential;
-        //return SolverCategory::overlapping;
+        //return Dune::SolverCategory::sequential;
+        return Dune::SolverCategory::overlapping;
     }
     
 private:

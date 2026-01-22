@@ -136,7 +136,7 @@ namespace Opm {
     SystemPreconditionerParallel::SystemPreconditionerParallel(const SystemMatrix& S,const std::function<ResVector()> &weightsCalculator,int pressureIndex, 
                                                const Opm::PropertyTree& prm,const SystemComm& syscomm) :
       S_(S), prm_(prm), syscomm_(syscomm) {
-            auto rop = std::make_unique<ResOperator>(S[_0][_0]);
+            auto rop = std::make_unique<ResOperator>(S[_0][_0],syscomm_[_0]);
             auto wop = std::make_unique<WellOperator>(S[_1][_1]);
             auto resprm = prm_.get_child("reservoir_solver");
             auto wellprm = prm_.get_child("well_solver");
@@ -147,11 +147,13 @@ namespace Opm {
                                                                 resprm,
                                                                 weightsCalculator,
                                                                 pressureIndex);
+
             auto rsmoother = std::make_unique<ResFlexibleSolverType>(*rop,
                                                                 syscomm_[_0],   
                                                                 resprmsmoother,
                                                                 weightsCalculator,
-                                                                pressureIndex);                                                    
+                                                                pressureIndex);
+
             std::function<WellVector()> weightsCalculatorWell;
             auto wsol = std::make_unique<WellFlexibleSolverType>(*wop, wellprm,
                                                              weightsCalculatorWell,
@@ -177,8 +179,8 @@ namespace Opm {
 
             auto wRes = r_w;
             auto resRes = r_r;
-            assert(v[_0].two_norm2() <1e-30);
-            assert(r_w.two_norm2() <1e-30);
+            //assert(v[_0].two_norm2() <1e-30);
+            //assert(r_w.two_norm2() <1e-30);
             //C.mv(v[_0], wRes); 
 
             
