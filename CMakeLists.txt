@@ -379,15 +379,26 @@ if(USE_EASYPROFILER)
 	target_link_libraries(flow_blackoil_fast easyprofiler)
 endif()
 
-# opm_add_test(ebos
-#		ONLY_COMPILE
-#		ALWAYS_ENABLE
-#		DEPENDS opmsimulators
-#		LIBRARIES opmsimulators
-#		SOURCES
-#		examples/ebos.cpp
-#		$<TARGET_OBJECTS:moduleVersionExp>
-#		)
+opm_add_test(ebos
+		ONLY_COMPILE
+		ALWAYS_ENABLE
+		DEPENDS opmsimulators
+		LIBRARIES opmsimulators
+		SOURCES
+		examples/ebos.cpp
+		$<TARGET_OBJECTS:moduleVersionExp>
+)
+
+opm_add_test(ebos_comp
+             ONLY_COMPILE
+             ALWAYS_ENABLE
+             DEPENDS opmsimulators
+             LIBRARIES opmsimulators
+             SOURCES
+             examples/ebos_comp.cpp
+             $<TARGET_OBJECTS:moduleVersionExp>
+ )
+
 
 
 # opm_add_test(ebos_experiment
