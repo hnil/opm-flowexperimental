@@ -164,8 +164,7 @@ opm_add_test(flow_blackoil_tracy
 	DEPENDS opmsimulators
 	LIBRARIES opmsimulators
 	SOURCES
-	examples/flow_blackoil_tracy.cpp opm/simulators/linalg/ISTLSolverExperiment.cpp
-	opm/simulators/linalg/SystemPreconditioner.cpp
+	examples/flow_blackoil_tracy.cpp #opm/simulators/linalg/system/ISTLSolverExperiment.cpp opm/simulators/linalg/system/SystemPreconditioner.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
 if(USE_EASYPROFILER)

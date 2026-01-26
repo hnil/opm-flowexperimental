@@ -27,7 +27,7 @@
 //#endif
 
 #include <opm/simulators/flow/Main.hpp>
-#include <opm/simulators/linalg/ISTLSolverExperiment.hpp>
+#include <opm/simulators/linalg/system/ISTLSolverExperiment.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
 
