@@ -1,0 +1,85 @@
+<svg viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ti de">
+<title id="ti">Which array each saturation-function lookup searches</title>
+<desc id="de">Shows the deck tables, the arrays master derives from them, the query point each curve lands on after endpoint scaling, and the baked node arrays.</desc>
+<style>
+  .h{font:700 15px ui-sans-serif,system-ui;fill:#1a1a1a}
+  .l{font:600 12px ui-sans-serif,system-ui;fill:#1a1a1a}
+  .s{font:11px ui-sans-serif,system-ui;fill:#555}
+  .m{font:11px ui-monospace,monospace;fill:#333}
+  .mm{font:10px ui-monospace,monospace;fill:#666}
+  .bx{fill:#f4f4f5;stroke:#d4d4d8;stroke-width:1;rx:4}
+  .ow{fill:#eaf1f8;stroke:#5b86b0;stroke-width:1.2;rx:4}
+  .go{fill:#f7eee8;stroke:#b07f5b;stroke-width:1.2;rx:4}
+  .bk{fill:#e9f2ec;stroke:#4f8f6a;stroke-width:1.2;rx:4}
+  .ln{stroke:#a8a8ae;stroke-width:1;fill:none}
+</style>
+
+<text class="h" x="16" y="24">1 — Deck: two tables, each one abscissa + several value columns</text>
+<g>
+  <rect class="ow" x="16" y="36" width="250" height="62"/>
+  <text class="l" x="28" y="54">SWOF  (per SATNUM)</text>
+  <text class="m" x="28" y="72">Sw | krw  krow  pcow</text>
+  <text class="s" x="28" y="90">one Sw column, three values</text>
+
+  <rect class="go" x="286" y="36" width="250" height="62"/>
+  <text class="l" x="298" y="54">SGOF  (per SATNUM)</text>
+  <text class="m" x="298" y="72">Sg | krg  krog  pcog</text>
+  <text class="s" x="298" y="90">one Sg column, three values</text>
+</g>
+
+<text class="h" x="16" y="132">2 — Master splits each column into its own (x, y) array pair</text>
+<g>
+  <rect class="ow" x="16" y="144" width="250" height="86"/>
+  <text class="mm" x="28" y="162">SwKrwSamples_ / krwSamples_</text>
+  <text class="mm" x="28" y="180">SwKrnSamples_ / krnSamples_</text>
+  <text class="mm" x="28" y="198">SwPcwnSamples_ / pcwnSamples_</text>
+  <text class="s" x="28" y="220">oilWaterParams, region-level</text>
+
+  <rect class="go" x="286" y="144" width="250" height="86"/>
+  <text class="mm" x="298" y="162">SwKrwSamples_ / krwSamples_</text>
+  <text class="mm" x="298" y="180">SwKrnSamples_ / krnSamples_</text>
+  <text class="mm" x="298" y="198">SwPcwnSamples_ / pcwnSamples_</text>
+  <text class="s" x="298" y="220">gasOilParams, region-level</text>
+</g>
+
+<text class="h" x="16" y="266">3 — Where each curve actually queries (after per-cell endpoint scaling)</text>
+<g>
+  <rect class="bx" x="16" y="278" width="520" height="150"/>
+  <text class="l" x="28" y="298">curve            array searched                query point</text>
+  <line x1="28" y1="306" x2="520" y2="306" class="ln"/>
+  <text class="m" x="28" y="324">krw       SWOF SwKrwSamples_      T_krw(sw)</text>
+  <text class="m" x="28" y="342">pcow      SWOF SwPcwnSamples_     T_pc (sw)      same sw, other T</text>
+  <text class="m" x="28" y="360">kro_ow    SWOF SwKrnSamples_      T_krn(S)       other saturation</text>
+  <text class="m" x="28" y="378">krg       SGOF SwKrnSamples_      T_krn(1-Swl-sg)</text>
+  <text class="m" x="28" y="396">pcgo      SGOF SwPcwnSamples_     T_pc (1-Swl-sg) same input, other T</text>
+  <text class="m" x="28" y="414">kro_go    SGOF SwKrwSamples_      T_krw(1-S)     other table entirely</text>
+</g>
+<text class="s" x="556" y="300">T_krw uses saturationKrwPoints()</text>
+<text class="s" x="556" y="318">T_krn uses saturationKrnPoints()</text>
+<text class="s" x="556" y="336">T_pc  uses saturationPcPoints()</text>
+<text class="s" x="556" y="354">  — and is always 2-point</text>
+<text class="s" x="556" y="380">so pairs sharing an input still</text>
+<text class="s" x="556" y="398">land on different positions</text>
+<text class="s" x="556" y="416">→ 6 searches (4 without ENDSCALE)</text>
+
+<text class="h" x="16" y="464">4 — Baked: resampled onto three shared node arrays, indexed by the input</text>
+<g>
+  <rect class="bk" x="16" y="476" width="250" height="60"/>
+  <text class="l" x="28" y="494">axis sw</text>
+  <text class="mm" x="28" y="512">x[] | vals[] = v0,s0,v1,s1</text>
+  <text class="s" x="28" y="529">krw and pcow, one search</text>
+
+  <rect class="bk" x="286" y="476" width="250" height="60"/>
+  <text class="l" x="298" y="494">axis sg</text>
+  <text class="mm" x="298" y="512">x[] | vals[] = v0,s0,v1,s1</text>
+  <text class="s" x="298" y="529">krg and pcgo, one search</text>
+
+  <rect class="bk" x="556" y="476" width="300" height="60"/>
+  <text class="l" x="568" y="494">axis S = max(sw,Swl)+sg</text>
+  <text class="mm" x="568" y="512">x[] | vals[] = v0,s0,v1,s1</text>
+  <text class="s" x="568" y="529">kro_ow and kro_go — from BOTH decks</text>
+</g>
+<text class="s" x="16" y="560">The scaling T is folded into the node positions at bake time, so curves that share an input share a search.</text>
+<text class="s" x="16" y="578">kro_ow and kro_go come from different deck tables; only resampling can put them on one array.</text>
+<text class="s" x="16" y="596">Norne: 7 tables, 33.7 KB (49.3 KB with the Carlson imbibition pool).</text>
+</svg>

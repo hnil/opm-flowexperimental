@@ -22,7 +22,7 @@
 */
 
 #include <config.h>
-#include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+#include <opm/material/fluidmatrixinteractions/MaterialLawManagerTable.hpp>
 
 #include <opm/common/OpmLog/OpmLog.hpp>
 
@@ -64,13 +64,13 @@ std::vector<double> normalizeKrValues_(const double tolcrit,
 namespace Opm {
 
 template<class TraitsT,int myPhases>
-EclMaterialLawManagerTable<TraitsT,myPhases>::EclMaterialLawManagerTable() = default;
+MaterialLawManagerTable<TraitsT,myPhases>::MaterialLawManagerTable() = default;
 
 template<class TraitsT,int myPhases>
-EclMaterialLawManagerTable<TraitsT,myPhases>::~EclMaterialLawManagerTable() = default;
+MaterialLawManagerTable<TraitsT,myPhases>::~MaterialLawManagerTable() = default;
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 initFromState(const EclipseState& eclState)
 {
     // get the number of saturation regions and the number of cells in the deck
@@ -131,7 +131,7 @@ initFromState(const EclipseState& eclState)
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 {
     // get the number of saturation regions
@@ -363,7 +363,7 @@ initParamsForElements(const EclipseState& eclState, size_t numCompressedElems)
 }
 
 template<class TraitsT,int myPhases>
-std::pair<typename TraitsT::Scalar, bool> EclMaterialLawManagerTable<TraitsT, myPhases>::
+std::pair<typename TraitsT::Scalar, bool> MaterialLawManagerTable<TraitsT, myPhases>::
 applySwatinit(unsigned elemIdx,
               Scalar pcow,
               Scalar Sw)
@@ -415,8 +415,8 @@ applySwatinit(unsigned elemIdx,
 }
 
 template<class TraitsT,int myPhases>
-const typename EclMaterialLawManagerTable<TraitsT,myPhases>::MaterialLawParams&
-EclMaterialLawManagerTable<TraitsT,myPhases>::
+const typename MaterialLawManagerTable<TraitsT,myPhases>::MaterialLawParams&
+MaterialLawManagerTable<TraitsT,myPhases>::
 connectionMaterialLawParams(unsigned satRegionIdx, unsigned elemIdx) const
 {
     MaterialLawParams& mlp = const_cast<MaterialLawParams&>(materialLawParams_[elemIdx]);
@@ -444,7 +444,7 @@ connectionMaterialLawParams(unsigned satRegionIdx, unsigned elemIdx) const
 }
 
 template<class TraitsT,int myPhases>
-int EclMaterialLawManagerTable<TraitsT,myPhases>::
+int MaterialLawManagerTable<TraitsT,myPhases>::
 getKrnumSatIdx(unsigned elemIdx, FaceDir::DirEnum facedir) const
 {
     using Dir = FaceDir::DirEnum;
@@ -471,7 +471,7 @@ getKrnumSatIdx(unsigned elemIdx, FaceDir::DirEnum facedir) const
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 oilWaterHysteresisParams(Scalar& soMax,
                          Scalar& swMax,
                          Scalar& swMin,
@@ -485,7 +485,7 @@ oilWaterHysteresisParams(Scalar& soMax,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 setOilWaterHysteresisParams(const Scalar& soMax,
                             const Scalar& swMax,
                             const Scalar& swMin,
@@ -499,7 +499,7 @@ setOilWaterHysteresisParams(const Scalar& soMax,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 gasOilHysteresisParams(Scalar& sgmax,
                        Scalar& shmax,
                        Scalar& somin,
@@ -513,7 +513,7 @@ gasOilHysteresisParams(Scalar& sgmax,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 setGasOilHysteresisParams(const Scalar& sgmax,
                           const Scalar& shmax,
                           const Scalar& somin,
@@ -528,7 +528,7 @@ setGasOilHysteresisParams(const Scalar& sgmax,
 
 template<class TraitsT,int myPhases>
 EclEpsScalingPoints<typename TraitsT::Scalar>&
-EclMaterialLawManagerTable<TraitsT,myPhases>::
+MaterialLawManagerTable<TraitsT,myPhases>::
 oilWaterScaledEpsPointsDrainage(unsigned elemIdx)
 {
     //auto& materialParams = materialLawParams_[elemIdx];
@@ -539,7 +539,7 @@ oilWaterScaledEpsPointsDrainage(unsigned elemIdx)
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGlobalEpsOptions_(const EclipseState& eclState)
 {
     oilWaterEclEpsConfig_ = std::make_shared<EclEpsConfig>();
@@ -549,7 +549,7 @@ readGlobalEpsOptions_(const EclipseState& eclState)
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGlobalHysteresisOptions_(const EclipseState& state)
 {
     hysteresisConfig_ = std::make_shared<EclHysteresisConfig>();
@@ -557,7 +557,7 @@ readGlobalHysteresisOptions_(const EclipseState& state)
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGlobalThreePhaseOptions_(const Runspec& runspec)
 {
     bool gasEnabled = runspec.phases().active(Phase::GAS);
@@ -603,7 +603,7 @@ readGlobalThreePhaseOptions_(const Runspec& runspec)
 
 template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParameters_(Container& dest,
                                const EclipseState& eclState,
                                unsigned satRegionIdx)
@@ -701,7 +701,7 @@ readGasOilEffectiveParameters_(Container& dest,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersSgof_(GasOilEffectiveTwoPhaseParams& effParams,
                                    const Scalar Swco,
                                    const double tolcrit,
@@ -723,7 +723,7 @@ readGasOilEffectiveParametersSgof_(GasOilEffectiveTwoPhaseParams& effParams,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersSlgof_(GasOilEffectiveTwoPhaseParams& effParams,
                                     const Scalar Swco,
                                     const double tolcrit,
@@ -745,7 +745,7 @@ readGasOilEffectiveParametersSlgof_(GasOilEffectiveTwoPhaseParams& effParams,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
                                       const Scalar Swco,
                                       const double tolcrit,
@@ -769,7 +769,7 @@ readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
                                       const Scalar Swco,
                                       const double tolcrit,
@@ -794,7 +794,7 @@ readGasOilEffectiveParametersFamily2_(GasOilEffectiveTwoPhaseParams& effParams,
 
 template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readOilWaterEffectiveParameters_(Container& dest,
                                  const EclipseState& eclState,
                                  unsigned satRegionIdx)
@@ -911,7 +911,7 @@ readOilWaterEffectiveParameters_(Container& dest,
 
 template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasWaterEffectiveParameters_(Container& dest,
                                  const EclipseState& eclState,
                                  unsigned satRegionIdx)
@@ -969,7 +969,7 @@ readGasWaterEffectiveParameters_(Container& dest,
 
 template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasOilUnscaledPoints_(Container& dest,
                           std::shared_ptr<EclEpsConfig> config,
                           const EclipseState& /* eclState */,
@@ -987,7 +987,7 @@ readGasOilUnscaledPoints_(Container& dest,
 
 template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readOilWaterUnscaledPoints_(Container& dest,
                             std::shared_ptr<EclEpsConfig> config,
                             const EclipseState& /* eclState */,
@@ -1005,7 +1005,7 @@ readOilWaterUnscaledPoints_(Container& dest,
 
 template<class TraitsT,int myPhases>
 template <class Container>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 readGasWaterUnscaledPoints_(Container& dest,
                             std::shared_ptr<EclEpsConfig> config,
                             const EclipseState& /* eclState */,
@@ -1024,7 +1024,7 @@ readGasWaterUnscaledPoints_(Container& dest,
 template<class TraitsT,int myPhases>
 std::tuple<EclEpsScalingPointsInfo<typename TraitsT::Scalar>,
            EclEpsScalingPoints<typename TraitsT::Scalar>>
-EclMaterialLawManagerTable<TraitsT,myPhases>::
+MaterialLawManagerTable<TraitsT,myPhases>::
 readScaledPoints_(const EclEpsConfig& config,
                   const EclipseState& eclState,
                   const EclEpsGridProperties& epsGridProperties,
@@ -1043,7 +1043,7 @@ readScaledPoints_(const EclEpsConfig& config,
 }
 
 template<class TraitsT,int myPhases>
-void EclMaterialLawManagerTable<TraitsT,myPhases>::
+void MaterialLawManagerTable<TraitsT,myPhases>::
 initThreePhaseParams_(const EclipseState& /* eclState */,
                       MaterialLawParams& materialParams,
                       unsigned /*satRegionIdx*/,
@@ -1067,8 +1067,8 @@ initThreePhaseParams_(const EclipseState& /* eclState */,
 
 }
 
-template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2,false,true>,3>;
-template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2,false,true>,2>;
-//template class EclMaterialLawManagerTable<ThreePhaseMaterialTraits<float,0,1,2>>;
+template class MaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2,false,true>,3>;
+template class MaterialLawManagerTable<ThreePhaseMaterialTraits<double,0,1,2,false,true>,2>;
+//template class MaterialLawManagerTable<ThreePhaseMaterialTraits<float,0,1,2>>;
 
 } // namespace Opm

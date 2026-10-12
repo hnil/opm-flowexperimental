@@ -27,7 +27,7 @@
 #ifndef OPM_ECL_DEFAULT_MATERIAL_EXPERIMENTAL_HPP
 #define OPM_ECL_DEFAULT_MATERIAL_EXPERIMENTAL_HPP
 
-#include <opm/material/fluidmatrixinteractions/EclDefaultMaterialExperimental.hpp>
+#include <opm/material/fluidmatrixinteractions/DefaultMaterialExperimental.hpp>
 
 #include <opm/material/fluidmatrixinteractions/EclDefaultMaterialParams.hpp>
 
@@ -48,7 +48,7 @@ namespace Opm {
  *
  */
     template<class DefaultMaterial>    
-class EclDefaultMaterialExperimental 
+class DefaultMaterialExperimental 
 {    
 public:
     static constexpr int waterPhaseIdx = DefaultMaterial::waterPhaseIdx;

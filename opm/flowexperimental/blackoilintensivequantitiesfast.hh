@@ -35,7 +35,11 @@
 #include <opm/models/blackoil/blackoilbrinemodules.hh>
 #include <opm/models/blackoil/blackoilenergymodules.hh>
 #include <opm/models/blackoil/blackoildiffusionmodule.hh>
+#include <opm/models/blackoil/blackoildispersionmodule.hh>
+#include <opm/models/blackoil/blackoilconvectivemixingmodule.hh>
+#include <opm/models/blackoil/blackoilbioeffectsmodules.hh>
 //#include <opm/models/blackoil/blackoilmicpmodules.hh>
+#include <opm/models/common/directionalmobility.hh>
 #include <opm/material/fluidstates/BlackOilFluidState.hpp>
 #include <opm/material/common/Valgrind.hpp>
 #include <opm/input/eclipse/EclipseState/Grid/FaceDir.hpp>
@@ -58,7 +62,7 @@ namespace Opm {
  *        finite volume in the black-oil model.
  */
 template <class TypeTag>
-class EclBlackOilIntensiveQuantities
+class BlackOilIntensiveQuantitiesFast
     : public GetPropType<TypeTag, Properties::DiscIntensiveQuantities>
     , public GetPropType<TypeTag, Properties::FluxModule>::FluxIntensiveQuantities
     , public BlackOilDiffusionIntensiveQuantities<TypeTag, getPropValue<TypeTag, Properties::EnableDiffusion>() >
@@ -114,7 +118,7 @@ class EclBlackOilIntensiveQuantities
     enum { dimWorld = GridView::dimensionworld };
     enum { compositionSwitchIdx = Indices::compositionSwitchIdx };
 
-    static constexpr bool compositionSwitchEnabled = Indices::compositionSwitchIdx >= 0;
+    static constexpr bool compositionSwitchEnabled = Indices::compositionSwitchIdx != std::numeric_limits<unsigned>::max();
     static constexpr bool waterEnabled = Indices::waterEnabled;
     static constexpr bool gasEnabled = Indices::gasEnabled;
     static constexpr bool oilEnabled = Indices::oilEnabled;
@@ -136,6 +140,7 @@ public:
                                           enableBrine,
                                           enableSaltPrecipitation,
                                           enableDisgasInWater,
+                                          enableSolvent,
                                           Indices::numPhases>;
     using ScalarFluidState = BlackOilFluidState<Scalar,
                                                 FluidSystem,
@@ -146,10 +151,11 @@ public:
                                                 enableBrine,
                                                 enableSaltPrecipitation,
                                                 enableDisgasInWater,
+                                                enableSolvent,
                                                 Indices::numPhases>;
     using Problem = GetPropType<TypeTag, Properties::Problem>;
 
-    EclBlackOilIntensiveQuantities()
+    BlackOilIntensiveQuantitiesFast()
     {
         if constexpr (compositionSwitchEnabled) {
             fluidState_.setRs(0.0);
@@ -162,9 +168,9 @@ public:
             fluidState_.setRsw(0.0);
         }
     }
-    EclBlackOilIntensiveQuantities(const EclBlackOilIntensiveQuantities& other) = default;
+    BlackOilIntensiveQuantitiesFast(const BlackOilIntensiveQuantitiesFast& other) = default;
 
-    EclBlackOilIntensiveQuantities& operator=(const EclBlackOilIntensiveQuantities& other) = default;
+    BlackOilIntensiveQuantitiesFast& operator=(const BlackOilIntensiveQuantitiesFast& other) = default;
 
     /*!
      * \copydoc IntensiveQuantities::update
@@ -178,6 +184,10 @@ public:
         unsigned globalSpaceIdx = elemCtx.globalSpaceIndex(dofIdx, timeIdx);
         this->update(problem,priVars,globalSpaceIdx,timeIdx);
     }
+    // Args are the multiplexer-dispatch tags master's context-free model loop
+    // passes (FIBlackoilModel::updateSingleCachedIntQuantUnchecked); this
+    // kernel resolves the PVT and satfunc paths itself, so they are ignored.
+    template <class ...Args>
     void update(const Problem& problem,
                 const PrimaryVariables& priVars,
                 unsigned globalSpaceIdx,
@@ -246,7 +256,9 @@ public:
             ? problem.maxGasDissolutionFactor(timeIdx, globalSpaceIdx)
             : 0.0;
 
-        asImp_().updateTemperature_(problem, priVars, globalSpaceIdx, timeIdx, linearizationType);
+        if constexpr (enableTemperature) {
+            asImp_().updateTemperature_(problem, priVars, globalSpaceIdx, timeIdx, linearizationType);
+        }
 
         unsigned pvtRegionIdx = priVars.pvtRegionIndex();
         fluidState_.setPvtRegionIndex(pvtRegionIdx);
@@ -303,15 +315,23 @@ public:
         std::array<Evaluation, numPhases> pC = {0, 0, 0};
         {
             OPM_TIMEBLOCK_LOCAL(RelpermEvaluation,Opm::Subsystem::Props);
-            //const auto& materialParams = problem.materialLawParams(0);
-            //const auto& materialParams = problem.materialLawParams(globalSpaceIdx).template getRealParams<Opm::EclMultiplexerApproach::Default>();
-            // MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState_);
-            // MaterialLaw::DefaultMaterial::relativePermeabilities(mobility_, materialParams, fluidState_);
-            const auto& materialParams = problem.materialLawParams(globalSpaceIdx);
-            MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);
-            MaterialLaw::relativePermeabilities(mobility_, materialParams, fluidState_);
-            //MaterialLaw::relativecapillaryPressuresAndRelativePermeabilities(pC, mobility_, materialParams, fluidState_);
-            //problem.updateRelperms(mobility_, dirMob_, fluidState_, globalSpaceIdx);
+            // If the problem provides baked relperm tables (FlowProblemSimpleBaked),
+            // use them; pC then holds capillary-pressure differences relative to
+            // oil, which is all the pressure update below consumes.
+            if constexpr (requires { problem.evalBakedRelperm(globalSpaceIdx,
+                                                              fluidState_.saturation(waterPhaseIdx),
+                                                              fluidState_.saturation(gasPhaseIdx),
+                                                              mobility_, pC); }) {
+                problem.evalBakedRelperm(globalSpaceIdx,
+                                         fluidState_.saturation(waterPhaseIdx),
+                                         fluidState_.saturation(gasPhaseIdx),
+                                         mobility_, pC);
+            }
+            else {
+                const auto& materialParams = problem.materialLawParams(globalSpaceIdx);
+                MaterialLaw::capillaryPressures(pC, materialParams, fluidState_);
+                MaterialLaw::relativePermeabilities(mobility_, materialParams, fluidState_);
+            }
         }
         // oil is the reference phase for pressure
         if (priVars.primaryVarsMeaningPressure() == PrimaryVariables::PressureMeaning::Pg) {
@@ -369,7 +389,7 @@ public:
                     RsSat *= max(1e-3, pow(So_tmp/maxOilSaturation, vapPar2));
                 }
 
-                RsSat = enableExtbo ? asImp_().rs() : RsSat;
+                if constexpr (enableExtbo) { RsSat = asImp_().rs(); }
                 if(RsMax < RsSat_max || RsSat < RsSat_max){
                     saturated[oilPhaseIdx] = false;
                 }
@@ -431,7 +451,7 @@ public:
                     RvSat *= max(1e-3, pow(So_tmp/maxOilSaturation, vapPar1));
                 }
 
-                RvSat = enableExtbo ? asImp_().rv() : RvSat;
+                if constexpr (enableExtbo) { RvSat = asImp_().rv(); }
                 if(RvSat < RvSat_max || RvMax < RvSat_max){
                     saturated[gasPhaseIdx] = false;
                 }
@@ -674,6 +694,10 @@ public:
      */
     const FluidState& fluidState() const
     { return fluidState_; }
+
+    // Required by the blackoil modules (convective mixing, tpfa residual, ...).
+    const auto& getFluidSystem() const
+    { return fluidState_.fluidSystem(); }
 
     /*!
      * \copydoc ImmiscibleIntensiveQuantities::mobility

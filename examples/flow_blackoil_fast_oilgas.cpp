@@ -26,9 +26,9 @@
 #include <opm/simulators/flow/Main.hpp>
 #include <opm/models/blackoil/blackoillocalresidualtpfa.hh>
 #include <opm/models/discretization/common/tpfalinearizer.hh>
-#include <opm/flowexperimental/eclblackoilintensivequantities.hh>
+#include <opm/flowexperimental/blackoilintensivequantitiesfast.hh>
 #include <opm/flowexperimental/blackoilintensivequantitiessimple.hh>
-#include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+#include <opm/material/fluidmatrixinteractions/MaterialLawManagerTable.hpp>
 
 // initialization modifications to be able to inititialize with new material manager
 #include <opm/simulators/flow/equil/EquilibrationHelpers.hpp>
@@ -36,47 +36,47 @@
 #include <opm/simulators/flow/equil/InitStateEquil.hpp>
 #include <opm/simulators/flow/equil/InitStateEquil_impl.hpp>//new file in flow experimental
 #include "BlackOilModelFvFast.hpp"
-#include "EclProblemSimpleFast.hpp"
+#include "FlowProblemSimpleFast.hpp"
 
 namespace Opm {
 namespace Properties {
 namespace TTag {
-    struct EclFlowProblemTest {
+    struct FlowProblemTest {
         using InheritsFrom = std::tuple<FlowProblem>;
     };
 }
     template<class TypeTag>
-    struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
+    struct Linearizer<TypeTag, TTag::FlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
 
     template<class TypeTag>
-    struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
+    struct LocalResidual<TypeTag, TTag::FlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
 
     template<class TypeTag>
-    struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
+    struct EnableDiffusion<TypeTag, TTag::FlowProblemTest> { static constexpr bool value = false; };
     template<class TypeTag>
-    struct Model<TypeTag, TTag::EclFlowProblemTest> {
+    struct Model<TypeTag, TTag::FlowProblemTest> {
         using type = BlackOilModelFvFast<TypeTag>;
     };
     template<class TypeTag>
-    struct Problem<TypeTag, TTag::EclFlowProblemTest> {
-        using type = EclProblemSimpleFast<TypeTag>;
+    struct Problem<TypeTag, TTag::FlowProblemTest> {
+        using type = FlowProblemSimpleFast<TypeTag>;
     };
 
     template<class TypeTag>
-    struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemTest> {
+    struct IntensiveQuantities<TypeTag, TTag::FlowProblemTest> {
         using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
-        //using type = EclBlackOilIntensiveQuantities<TypeTag>;
-        //using type = EclBlackOilIntensiveQuantities<TypeTag>;
+        //using type = BlackOilIntensiveQuantitiesFast<TypeTag>;
+        //using type = BlackOilIntensiveQuantitiesFast<TypeTag>;
 
     };
 
       template<class TypeTag>
-    struct EnergyModuleType<TypeTag, TTag::EclFlowProblemTest>
+    struct EnergyModuleType<TypeTag, TTag::FlowProblemTest>
     { static constexpr EnergyModules value = EnergyModules::NoTemperature; };
 
 
     template<class TypeTag>
-    struct MaterialLaw<TypeTag, TTag::EclFlowProblemTest>
+    struct MaterialLaw<TypeTag, TTag::FlowProblemTest>
     {
     private:
         using Scalar = GetPropType<TypeTag, Properties::Scalar>;
@@ -90,13 +90,13 @@ namespace TTag {
                                                 enableHysteresis, enableEndpointScaling>;
 
     public:
-      using EclMaterialLawManager = ::Opm::EclMaterialLawManagerTable<Traits,2>;
+      using EclMaterialLawManager = ::Opm::MaterialLawManagerTable<Traits,2>;
         //using EclMaterialLawManager = ::Opm::EclMaterialLawManager<Traits>;
 
         using type = typename EclMaterialLawManager::MaterialLaw;
     };
     template<class TypeTag>
-    struct Indices<TypeTag, TTag::EclFlowProblemTest>
+    struct Indices<TypeTag, TTag::FlowProblemTest>
     {
     private:
         // it is unfortunately not possible to simply use 'TypeTag' here because this leads
@@ -127,7 +127,7 @@ namespace TTag {
 int main(int argc, char** argv)
 {
     OPM_TIMEBLOCK(fullSimulation);
-    using TypeTag = Opm::Properties::TTag::EclFlowProblemTest;
+    using TypeTag = Opm::Properties::TTag::FlowProblemTest;
     auto mainObject = Opm::Main(argc, argv);
     return mainObject.runStatic<TypeTag>();
 //    return Opm::start<TypeTag>(argc, argv);

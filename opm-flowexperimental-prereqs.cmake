@@ -14,34 +14,20 @@ set (opm-flowexperimental_CONFIG_VAR
   HAVE_TRACY
   )
 
-# dependencies
-set (opm-flowexperimental_DEPS
-  # Compile with C99 support if available
-  "C99"
-  # Various runtime library enhancements
-  "Boost 1.44.0
-    COMPONENTS date_time unit_test_framework REQUIRED"
-  # DUNE prerequisites
-  "dune-common REQUIRED"
-  "dune-istl REQUIRED"
-  # matrix library
-  "BLAS REQUIRED"
-  "LAPACK REQUIRED"
-  # Look for MPI support
-  "MPI"
-  # PETSc numerical backend
-  "PETSc"
-  # Tim Davis' SuiteSparse archive
-  "SuiteSparse COMPONENTS umfpack"
-  # SuperLU direct solver
-  "SuperLU"
-  # OPM dependency
-  "opm-common REQUIRED"
-  "opm-grid REQUIRED"
-  "opm-simulators REQUIRED"
-  "Damaris 1.7"
-  "HDF5"  
-  "Tracy"
-  )
+# dependencies, found via direct find_package calls (modern opm-common no
+# longer ships the find_package_deps() helper / ${project}_DEPS mechanism).
+find_package(Boost COMPONENTS date_time unit_test_framework REQUIRED)
+find_package(dune-common REQUIRED)
+find_package(dune-istl REQUIRED)
+find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
+find_package(MPI)
+find_package(SuiteSparse COMPONENTS UMFPACK)
+find_package(opm-common REQUIRED)
+find_package(opm-grid REQUIRED)
+find_package(opm-simulators REQUIRED)
+find_package(HDF5)
 
-find_package_deps(opm-flowexperimental)
+# Note: have to look for alugrid before dune-fem.
+find_package(dune-alugrid)
+find_package(dune-fem)

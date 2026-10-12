@@ -95,7 +95,9 @@ inline Opm::time_point::duration testAll(const char * deck_file)
     typedef Opm::ThreePhaseMaterialTraits<Scalar,
                                           /*wettingPhaseIdx=*/waterPhaseIdx,
                                           /*nonWettingPhaseIdx=*/oilPhaseIdx,
-                                          /*gasPhaseIdx=*/gasPhaseIdx> MaterialTraits;
+                                          /*gasPhaseIdx=*/gasPhaseIdx,
+                                          /*enableHysteresis=*/false,
+                                          /*enableEndpointScaling=*/true> MaterialTraits;
 
     static constexpr int gasCompIdx = FluidSystem::gasCompIdx;
     static constexpr int oilCompIdx = FluidSystem::oilCompIdx;
@@ -125,7 +127,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
      typedef Opm::BlackOilFluidState<Evaluation, FluidSystem> FluidState;
     
     std::vector<int> pvtnum(nc,0);
-    const std::string& name("PVTNUM");
+    const std::string name("PVTNUM");
     if (eclState.fieldProps().has_int(name)){
         const auto& numData = eclState.fieldProps().get_int(name);
     

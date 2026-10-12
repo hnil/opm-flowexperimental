@@ -69,7 +69,7 @@ class FieldPropsManager;
  *        for a complete ECL deck.
  */
 template <class TraitsT, int myPhases=3>//, int myPhases>
-class EclMaterialLawManagerTable
+class MaterialLawManagerTable
 {
 private:
     using Traits = TraitsT;
@@ -133,8 +133,8 @@ public:
     using MaterialLaw = typename SelectMaterialLaw<myPhases,int>::type;
     using MaterialLawParams = typename MaterialLaw::Params;
 
-    EclMaterialLawManagerTable();
-    ~EclMaterialLawManagerTable();
+    MaterialLawManagerTable();
+    ~MaterialLawManagerTable();
 
 private:
     // internal typedefs

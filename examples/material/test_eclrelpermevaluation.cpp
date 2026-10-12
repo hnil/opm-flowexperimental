@@ -35,9 +35,9 @@
 
 #include <opm/material/fluidmatrixinteractions/EclEpsGridProperties.hpp>
 #include <opm/material/fluidmatrixinteractions/EclMaterialLawManager.hpp>
-//#include <opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.hpp>
+//#include <opm/material/fluidmatrixinteractions/MaterialLawManagerTable.hpp>
 //#include <opm/material/fluidmatrixinteractions/EclMaterialDefaultLawManager.hpp>
-#include <opm/material/fluidmatrixinteractions/EclDefaultMaterialExperimental.hpp>
+#include <opm/material/fluidmatrixinteractions/DefaultMaterialExperimental.hpp>
 #include <opm/material/fluidmatrixinteractions/EclMultiplexerMaterialParams.hpp>
 #include <opm/material/fluidmatrixinteractions/EclDefaultMaterial.hpp>
 #include <opm/material/fluidsystems/BlackOilFluidSystem.hpp>
@@ -224,7 +224,7 @@ inline Opm::time_point::duration testAll(const char * deck_file)
             // //MaterialLaw::capillaryPressures(pC, materialParams, fluidState);
             // //MaterialLaw::relativePermeabilities(mobility, materialParams, fluidState);
 //            MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState);
-            Opm::EclDefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilitiesSimple(mobility, materialParams, fluidState);
+            Opm::DefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilitiesSimple(mobility, materialParams, fluidState);
             //MaterialLaw::DefaultMaterial::relativePermeabilities(mobility, materialParams, fluidState);
             
         }

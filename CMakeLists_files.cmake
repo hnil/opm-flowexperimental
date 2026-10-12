@@ -26,7 +26,7 @@
 # originally generated with the command:
 # find opm -name '*.c*' -printf '\t%p\n' | sort
 list (APPEND MAIN_SOURCE_FILES
-	opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp
+	opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp
 	)
 
 

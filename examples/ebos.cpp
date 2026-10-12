@@ -124,7 +124,7 @@ struct Simulator<TypeTag, TTag::EclFlowProblemEbos> { using type = Opm::Simulato
 // };
 
 // template<class TypeTag>
-// struct EclEnableAquifers<TypeTag, TTag::EclFlowProblemTest> {
+// struct EclEnableAquifers<TypeTag, TTag::FlowProblemTest> {
 //     static constexpr bool value = false;
 // };
 }

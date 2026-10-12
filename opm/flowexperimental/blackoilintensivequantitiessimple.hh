@@ -36,7 +36,11 @@
 #include <opm/models/blackoil/blackoilenergymodules.hh>
 #include <opm/flowexperimental/blackoilenergymodulesfv.hh>
 #include <opm/models/blackoil/blackoildiffusionmodule.hh>
+#include <opm/models/blackoil/blackoildispersionmodule.hh>
+#include <opm/models/blackoil/blackoilconvectivemixingmodule.hh>
+#include <opm/models/blackoil/blackoilbioeffectsmodules.hh>
 //#include <opm/models/blackoil/blackoilmicpmodules.hh>
+#include <opm/models/common/directionalmobility.hh>
 #include <opm/material/fluidstates/BlackOilFluidState.hpp>
 #include <opm/material/common/Valgrind.hpp>
 #include <opm/common/ErrorMacros.hpp>
@@ -114,7 +118,7 @@ class BlackOilIntensiveQuantitiesSimple
     enum { dimWorld = GridView::dimensionworld };
     enum { compositionSwitchIdx = Indices::compositionSwitchIdx };
 
-    static constexpr bool compositionSwitchEnabled = Indices::compositionSwitchIdx >= 0;
+    static constexpr bool compositionSwitchEnabled = Indices::compositionSwitchIdx != std::numeric_limits<unsigned>::max();
     static constexpr bool waterEnabled = Indices::waterEnabled;
     static constexpr bool gasEnabled = Indices::gasEnabled;
     static constexpr bool oilEnabled = Indices::oilEnabled;
@@ -137,6 +141,7 @@ public:
                                           enableBrine,
                                           enableSaltPrecipitation,
                                           false,
+                                          enableSolvent,
                                           Indices::numPhases>;
     using ScalarFluidState = BlackOilFluidState<Scalar,
                                                 FluidSystem,
@@ -147,6 +152,7 @@ public:
                                                 enableBrine,
                                                 enableSaltPrecipitation,
                                                 false,// no gas in water
+                                                enableSolvent,
                                                 Indices::numPhases>;
     using Problem = GetPropType<TypeTag, Properties::Problem>;
 
@@ -291,11 +297,13 @@ public:
         } else {
             if (FluidSystem::enableDissolvedGas()) { // Add So > 0? i.e. if only water set rs = 0)
                 OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRs,Opm::Subsystem::Props);
-                const Evaluation& RsSat = enableExtbo ? asImp_().rs() :
-                    FluidSystem::saturatedDissolutionFactor(fluidState_,
-                                                            oilPhaseIdx,
-                                                            pvtRegionIdx,
-                                                            SoMax);
+                const Evaluation RsSat = [&]() {
+                    if constexpr (enableExtbo) { return asImp_().rs(); }
+                    else { return FluidSystem::saturatedDissolutionFactor(fluidState_,
+                                                                          oilPhaseIdx,
+                                                                          pvtRegionIdx,
+                                                                          SoMax); }
+                }();
                 fluidState_.setRs(min(RsMax, RsSat));
             }
             else {//(compositionSwitchEnabled)
@@ -310,11 +318,13 @@ public:
             if (FluidSystem::enableVaporizedOil() ) { // Add Sg > 0? i.e. if only water set rv = 0)
                 OPM_TIMEBLOCK_LOCAL(UpdateSaturatedRv, Opm::Subsystem::Props);
                 //NB! should save the indexing for later evalustion
-                const Evaluation& RvSat = enableExtbo ? asImp_().rv() :
-                    FluidSystem::saturatedDissolutionFactor(fluidState_,
-                                                            gasPhaseIdx,
-                                                            pvtRegionIdx,
-                                                            SoMax);
+                const Evaluation RvSat = [&]() {
+                    if constexpr (enableExtbo) { return asImp_().rv(); }
+                    else { return FluidSystem::saturatedDissolutionFactor(fluidState_,
+                                                                          gasPhaseIdx,
+                                                                          pvtRegionIdx,
+                                                                          SoMax); }
+                }();
                 fluidState_.setRv(min(RvMax, RvSat));
             }
             else {//(compositionSwitchEnabled)
@@ -479,6 +489,10 @@ public:
      */
     const FluidState& fluidState() const
     { return fluidState_; }
+
+    // Required by the blackoil modules (convective mixing, tpfa residual, ...).
+    const auto& getFluidSystem() const
+    { return fluidState_.fluidSystem(); }
 
     /*!
      * \copydoc ImmiscibleIntensiveQuantities::mobility

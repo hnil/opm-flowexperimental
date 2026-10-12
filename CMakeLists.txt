@@ -84,8 +84,10 @@ include(Findopm-tests)
 
 # list of prerequisites for this particular project; this is in a
 # separate file (in cmake/Modules sub-directory) because it is shared
-# with the find module
-include ("${project}-prereqs")
+# with the find module.
+# Note: OpmLibMain (included below) pulls in "${project}-prereqs" at the
+# correct point, so we must NOT include it manually here.
+#include ("${project}-prereqs")
 
 
 #find_package(amgcl)
@@ -136,13 +138,28 @@ macro (tests_hook)
 endmacro (tests_hook)
 
 
+# Deck input support (HAVE_ECL_INPUT) is unconditionally available in current opm-common;
+# the (removed) HAVE_ECL_INPUT switch is still referenced by the local copy of
+# MaterialLawManagerTable here, so define it for every target in this module.
+add_compile_definitions(HAVE_ECL_INPUT=1)
+
 # all setup common to the OPM library modules is done here
 include (OpmLibMain)
+
+# OpmLibMain calls the modern, project-prefixed hook
+# (opm-flowexperimental_prereqs_hook); the legacy unprefixed prereqs_hook above
+# is never invoked, so wire the library up to its dependencies explicitly here.
+# Linking opmsimulators transitively brings the opm-common / opm-grid / dune
+# include directories and compile definitions needed by the sources.
+target_link_libraries(opmflowexperimental PUBLIC opmsimulators)
 
 include(OpmBashCompletion)
 
 add_library(moduleVersionExp OBJECT opm/simulators/utils/moduleVersion.cpp)
 set_property(TARGET moduleVersionExp PROPERTY POSITION_INDEPENDENT_CODE ON)
+# Inherit include dirs / defines from opmsimulators so moduleVersion.cpp can
+# find its header (this is a local copy of the opm-simulators source).
+target_link_libraries(moduleVersionExp PRIVATE opmsimulators)
 
 # Strictly we only depend on the update-version target,
 # but this is not exposed in a super-build.
@@ -158,15 +175,18 @@ opm_add_test(matrix_merger_example
 		$<TARGET_OBJECTS:moduleVersionExp>
 )
 	
-opm_add_test(flow_blackoil_tracy
-	ONLY_COMPILE
-	ALWAYS_ENABLE
-	DEPENDS opmsimulators
-	LIBRARIES opmsimulators
-	SOURCES
-	examples/flow_blackoil_tracy.cpp #opm/simulators/linalg/system/ISTLSolverExperiment.cpp opm/simulators/linalg/system/SystemPreconditioner.cpp
-	$<TARGET_OBJECTS:moduleVersionExp>
-	)
+# Disabled: needs opm/simulators/linalg/system/ISTLSolverExperiment.hpp, whose local
+# copy predates the system-solver move to opm-simulators and redefines the
+# SystemTypes.hpp aliases (RRMatrix, SystemVector, ...) as non-templates.
+#opm_add_test(flow_blackoil_tracy
+#	ONLY_COMPILE
+#	ALWAYS_ENABLE
+#	DEPENDS opmsimulators
+#	LIBRARIES opmsimulators
+#	SOURCES
+#	examples/flow_blackoil_tracy.cpp #opm/simulators/linalg/system/ISTLSolverExperiment.cpp opm/simulators/linalg/system/SystemPreconditioner.cpp
+#	$<TARGET_OBJECTS:moduleVersionExp>
+#	)
 if(USE_EASYPROFILER)
 	opm_add_test(flow_blackoil_easyprofiler
 		ONLY_COMPILE
@@ -189,7 +209,7 @@ opm_add_test(flow_blackoil_noelemctx
 	examples/flow_blackoil_noelemctx.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
-target_sources(flow_blackoil_noelemctx PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+target_sources(flow_blackoil_noelemctx PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(flow_blackoil_nocache
 	ONLY_COMPILE
@@ -200,7 +220,7 @@ opm_add_test(flow_blackoil_nocache
 	examples/flow_blackoil_nocache.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
-target_sources(flow_blackoil_nocache PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+target_sources(flow_blackoil_nocache PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 
 opm_add_test(flow_blackoil_fast
@@ -212,7 +232,19 @@ opm_add_test(flow_blackoil_fast
 	examples/flow_blackoil_fast.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
-target_sources(flow_blackoil_fast PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+target_sources(flow_blackoil_fast PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
+
+# A/B control for flow_blackoil_fast: identical except IntensiveQuantities = master's.
+opm_add_test(flow_blackoil_masterIQ
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/flow_blackoil_masterIQ.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+target_sources(flow_blackoil_masterIQ PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(flow_blackoil_drygas
 	ONLY_COMPILE
@@ -233,7 +265,7 @@ opm_add_test(flow_blackoil_fast_oilgas
 	examples/flow_blackoil_fast_oilgas.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
-target_sources(flow_blackoil_fast_oilgas PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+target_sources(flow_blackoil_fast_oilgas PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(flow_blackoil_fast_oilgas_energy
 	ONLY_COMPILE
@@ -244,7 +276,7 @@ opm_add_test(flow_blackoil_fast_oilgas_energy
 	examples/flow_blackoil_fast_oilgas_energy.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
-target_sources(flow_blackoil_fast_oilgas_energy PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+target_sources(flow_blackoil_fast_oilgas_energy PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 
 opm_add_test(flow_blackoil_fast_wateroil
@@ -258,7 +290,7 @@ opm_add_test(flow_blackoil_fast_wateroil
 	)	
 
 target_sources(flow_blackoil_fast_wateroil
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(test_propertyevaluation
 	ONLY_COMPILE
@@ -271,7 +303,7 @@ opm_add_test(test_propertyevaluation
 	)
 
 target_sources(test_propertyevaluation
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(test_eclpropertyevaluation
 	ONLY_COMPILE
@@ -279,12 +311,12 @@ opm_add_test(test_eclpropertyevaluation
 	DEPENDS opmsimulators
 	LIBRARIES opmsimulators
 	SOURCES
-	examples/material/test_propertyevaluation.cpp
+	examples/material/test_eclpropertyevaluation.cpp
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
 
 target_sources(test_eclpropertyevaluation
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(test_eclpropertyevaluation_lowlevel
 	ONLY_COMPILE
@@ -297,7 +329,7 @@ opm_add_test(test_eclpropertyevaluation_lowlevel
 	)
 
 target_sources(test_eclpropertyevaluation_lowlevel
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(test_relpermevaluation
 	ONLY_COMPILE
@@ -309,10 +341,57 @@ opm_add_test(test_relpermevaluation
 	$<TARGET_OBJECTS:moduleVersionExp>
 	)
 
-target_sources(test_propertyevaluation
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+target_sources(test_relpermevaluation
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 
+
+# Control for flow_blackoil_baked: same standard material-law manager, but
+# generic relperm — isolates convergence effects of the manager swap vs baking.
+opm_add_test(flow_blackoil_fast_stdlaw
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/flow_blackoil_fast_stdlaw.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+# Control for flow_blackoil_baked: master's Model (FIBlackOilModel) instead of
+# BlackOilModelFvFast, isolating what the experimental model still contributes.
+opm_add_test(flow_blackoil_baked_stdmodel
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/flow_blackoil_baked_stdmodel.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+# flow_blackoil_fast with baked relperm tables (FlowProblemSimpleBaked).
+opm_add_test(flow_blackoil_baked
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/flow_blackoil_baked.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
+
+# Standalone intensive-quantities benchmark: master IQ vs fast IQ vs
+# region-batched passes on fabricated states from a real deck.
+opm_add_test(bench_iq_evaluation
+	ONLY_COMPILE
+	ALWAYS_ENABLE
+	DEPENDS opmsimulators
+	LIBRARIES opmsimulators
+	SOURCES
+	examples/material/bench_iq_evaluation.cpp
+	$<TARGET_OBJECTS:moduleVersionExp>
+	)
 
 opm_add_test(test_eclrelpermevaluation
 	ONLY_COMPILE
@@ -325,7 +404,7 @@ opm_add_test(test_eclrelpermevaluation
 	)
 
 target_sources(test_eclrelpermevaluation
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(test_eclrelpermevaluation_lowlevel
 	ONLY_COMPILE
@@ -338,7 +417,7 @@ opm_add_test(test_eclrelpermevaluation_lowlevel
 	)
 
 target_sources(test_eclrelpermevaluation_lowlevel
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 opm_add_test(test_eclrelpermevaluation_flowdiag
 	ONLY_COMPILE
@@ -351,7 +430,7 @@ opm_add_test(test_eclrelpermevaluation_flowdiag
 	)
 
 target_sources(test_eclrelpermevaluation_flowdiag
-	PRIVATE opm/material/fluidmatrixinteractions/EclMaterialLawManagerTable.cpp)
+	PRIVATE opm/material/fluidmatrixinteractions/MaterialLawManagerTable.cpp)
 
 
 
@@ -359,19 +438,10 @@ target_sources(test_eclrelpermevaluation_flowdiag
 set(HAVE_TRACY 0)
 if(USE_TRACY)
 	set(HAVE_TRACY 1)
-	target_link_libraries(flow_blackoil_fast Tracy::TracyClient)
-	target_link_libraries(flow_blackoil_noelemctx Tracy::TracyClient)
-	target_link_libraries(flow_blackoil_drygas Tracy::TracyClient)
-	target_link_libraries(flow_blackoil_tracy Tracy::TracyClient)
-	target_link_libraries(flow_blackoil_nocache Tracy::TracyClient)
-	target_link_libraries(flow_blackoil_fast_oilgas Tracy::TracyClient)
-	target_link_libraries(flow_blackoil_fast_wateroil Tracy::TracyClient)
-	target_link_libraries(test_propertyevaluation Tracy::TracyClient)
-	target_link_libraries(test_eclpropertyevaluation Tracy::TracyClient)
-	target_link_libraries(test_eclpropertyevaluation_lowlevel Tracy::TracyClient)
-	target_link_libraries(test_relpermevaluation Tracy::TracyClient)
-	target_link_libraries(test_eclrelpermevaluation Tracy::TracyClient)
-	target_link_libraries(test_eclrelpermevaluation_lowlevel Tracy::TracyClient)
+	# Tracy is already linked (keyword signature) to every opm_add_test target
+	# by opm_add_target_options -> use_tracy when USE_TRACY_PROFILER is ON, so
+	# these explicit plain-signature links are redundant and would clash
+	# (plain vs keyword target_link_libraries on the same target).
 endif()
 
 if(USE_EASYPROFILER)

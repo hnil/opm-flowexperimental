@@ -39,7 +39,7 @@
 #include <opm/material/fluidmatrixinteractions/EclDefaultMaterial.hpp>
 #include <opm/material/fluidmatrixinteractions/EclDefaultMaterial.hpp>
 #include <opm/material/fluidmatrixinteractions/SatCurveMultiplexer.hpp>
-#include <opm/material/fluidmatrixinteractions/EclDefaultMaterialExperimental.hpp>
+#include <opm/material/fluidmatrixinteractions/DefaultMaterialExperimental.hpp>
 #include <opm/material/fluidsystems/BlackOilFluidSystem.hpp>
 #include <opm/material/fluidstates/BlackOilFluidState.hpp>
 #include <opm/material/densead/Evaluation.hpp>
@@ -242,8 +242,8 @@ inline Opm::time_point::duration testAll(const char * deck_file)
             //MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState);
             //MaterialLaw::DefaultMaterial::relativePermeabilitiesNew(mobility, materialParams, fluidState);
             //MaterialLaw::DefaultMaterial::relativePermeabilitiesNew(mobility, Swco, oilwaterparams, gasoilparams, fluidState);
-            //Opm::EclDefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilitiesSimple(mobility, materialParams, fluidState);
-            Opm::EclDefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilities(mobility, Swco, oilwaterparams, gasoilparams, fluidState);
+            //Opm::DefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilitiesSimple(mobility, materialParams, fluidState);
+            Opm::DefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilities(mobility, Swco, oilwaterparams, gasoilparams, fluidState);
         }
     }
     Opm::time_point::duration total_time = Opm::TimeService::now() - start;

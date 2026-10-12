@@ -35,6 +35,10 @@
 #include <opm/models/blackoil/blackoilbrinemodules.hh>
 #include <opm/models/blackoil/blackoilenergymodules.hh>
 #include <opm/models/blackoil/blackoildiffusionmodule.hh>
+#include <opm/models/blackoil/blackoildispersionmodule.hh>
+#include <opm/models/blackoil/blackoilconvectivemixingmodule.hh>
+#include <opm/models/blackoil/blackoilbioeffectsmodules.hh>
+#include <opm/models/common/directionalmobility.hh>
 //#include <opm/models/blackoil/blackoilmicpmodules.hh>
 #include <opm/material/fluidstates/BlackOilFluidState.hpp>
 #include <opm/material/common/Valgrind.hpp>
@@ -43,7 +47,7 @@
 #include <opm/utility/CopyablePtr.hpp>
 
 #include <dune/common/fmatrix.hh>
-#include <opm/material/fluidmatrixinteractions/EclDefaultMaterialExperimental.hpp>
+#include <opm/material/fluidmatrixinteractions/DefaultMaterialExperimental.hpp>
 #include <cstring>
 #include <utility>
 
@@ -114,7 +118,7 @@ class BlackOilIntensiveQuantitiesDryGas
     enum { dimWorld = GridView::dimensionworld };
     enum { compositionSwitchIdx = Indices::compositionSwitchIdx };
 
-    static constexpr bool compositionSwitchEnabled = Indices::compositionSwitchIdx >= 0;
+    static constexpr bool compositionSwitchEnabled = Indices::compositionSwitchIdx != std::numeric_limits<unsigned>::max();
     static constexpr bool waterEnabled = Indices::waterEnabled;
     static constexpr bool gasEnabled = Indices::gasEnabled;
     static constexpr bool oilEnabled = Indices::oilEnabled;
@@ -137,6 +141,7 @@ public:
                                           enableBrine,
                                           enableSaltPrecipitation,
                                           false,
+                                          enableSolvent,
                                           Indices::numPhases>;
     using ScalarFluidState = BlackOilFluidState<Scalar,
                                                 FluidSystem,
@@ -147,6 +152,7 @@ public:
                                                 enableBrine,
                                                 enableSaltPrecipitation,
                                                 false,
+                                                enableSolvent,
                                                 Indices::numPhases>;
     using Problem = GetPropType<TypeTag, Properties::Problem>;
 
@@ -220,7 +226,9 @@ public:
 
         Scalar RsMax = 1e99;//problem.maxGasDissolutionFactor(timeIdx, globalSpaceIdx);
         //     : 0.0;
-        asImp_().updateTemperature_(problem, priVars, globalSpaceIdx, timeIdx, linearizationType);
+        if constexpr (enableTemperature) {
+            asImp_().updateTemperature_(problem, priVars, globalSpaceIdx, timeIdx, linearizationType);
+        }
 
         unsigned pvtRegionIdx = priVars.pvtRegionIndex();
         fluidState_.setPvtRegionIndex(pvtRegionIdx);
@@ -292,7 +300,7 @@ public:
             const auto& oilwaterparams =materialParams.oilWaterParams().effectiveLawParams().template getRealParams<Opm::SatCurveMultiplexerApproach::PiecewiseLinear>();
 
             Scalar Swco = materialParams.Swl();
-            Opm::EclDefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilities(mobility_, Swco, oilwaterparams, gasoilparams, fluidState_);
+            Opm::DefaultMaterialExperimental<typename MaterialLaw::DefaultMaterial>::relativePermeabilities(mobility_, Swco, oilwaterparams, gasoilparams, fluidState_);
             //MaterialLaw::DefaultMaterial::relativePermeabilitiesNew(mobility_, materialParams, fluidState_);
             //MaterialLaw::DefaultMaterial::capillaryPressures(pC, materialParams, fluidState_);
             //makMaterialLaw::DefaultMaterial::relativePermeabilitiesNew(mobility_, materialParams, fluidState_);
@@ -638,6 +646,10 @@ public:
      */
     const FluidState& fluidState() const
     { return fluidState_; }
+
+    // Required by the blackoil modules (convective mixing, tpfa residual, ...).
+    const auto& getFluidSystem() const
+    { return fluidState_.fluidSystem(); }
 
     /*!
      * \copydoc ImmiscibleIntensiveQuantities::mobility

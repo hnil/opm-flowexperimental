@@ -34,39 +34,39 @@
 namespace Opm {
 namespace Properties {
 namespace TTag {
-    struct EclFlowProblemTest {
+    struct FlowProblemTest {
         using InheritsFrom = std::tuple<FlowProblem>;
     };
 }
     template<class TypeTag>
-    struct Linearizer<TypeTag, TTag::EclFlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
+    struct Linearizer<TypeTag, TTag::FlowProblemTest> { using type = TpfaLinearizer<TypeTag>; };
     
     template<class TypeTag>
-    struct LocalResidual<TypeTag, TTag::EclFlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
+    struct LocalResidual<TypeTag, TTag::FlowProblemTest> { using type = BlackOilLocalResidualTPFA<TypeTag>; };
 
     template<class TypeTag>
-    struct EnableDiffusion<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = false; };
+    struct EnableDiffusion<TypeTag, TTag::FlowProblemTest> { static constexpr bool value = false; };
 
     template<class TypeTag>
-        struct AvoidElementContext<TypeTag, TTag::EclFlowProblemTest> { static constexpr bool value = true; };
+        struct AvoidElementContext<TypeTag, TTag::FlowProblemTest> { static constexpr bool value = true; };
     // flow's well model only works with surface volumes
     // template<class TypeTag>
-    // struct BlackoilConserveSurfaceVolume<TypeTag, TTag::EclFlowProblemTest> {
+    // struct BlackoilConserveSurfaceVolume<TypeTag, TTag::FlowProblemTest> {
     //     static constexpr bool value = false;
     // }; 
     // // the values for the residual are for the whole cell instead of for a cubic meter of the cell
     // template<class TypeTag>
-    // struct UseVolumetricResidual<TypeTag, TTag::EclFlowProblemTest> {
+    // struct UseVolumetricResidual<TypeTag, TTag::FlowProblemTest> {
     //     static constexpr bool value = false;
     // };
     
     // use flow's linear solver backend for now
     template<class TypeTag>
-    struct LinearSolverSplice<TypeTag, TTag::EclFlowProblemTest> {
+    struct LinearSolverSplice<TypeTag, TTag::FlowProblemTest> {
         using type = TTag::FlowIstlSolver;
     };
   template<class TypeTag>
-  struct LinearSolverBackend<TypeTag, TTag::EclFlowProblemTest> {
+  struct LinearSolverBackend<TypeTag, TTag::FlowProblemTest> {
     using type = ISTLSolverExperiment<TypeTag>;
   };
 }
@@ -78,7 +78,7 @@ namespace TTag {
 int main(int argc, char** argv)
 {
     OPM_TIMEBLOCK(fullSimulation);
-    using TypeTag = Opm::Properties::TTag::EclFlowProblemTest;
+    using TypeTag = Opm::Properties::TTag::FlowProblemTest;
     auto mainObject = Opm::Main(argc, argv);
     return mainObject.runStatic<TypeTag>();
 //    return Opm::start<TypeTag>(argc, argv);

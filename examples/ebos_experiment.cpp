@@ -323,7 +323,7 @@ struct EclNewtonRelaxedTolerance<TypeTag, TTag::EclFlowProblemEbos> {
 
 template<class TypeTag>
 struct IntensiveQuantities<TypeTag, TTag::EclFlowProblemEbos> {
-    //using type = EclBlackOilIntensiveQuantities<TypeTag>;
+    //using type = BlackOilIntensiveQuantitiesFast<TypeTag>;
     using type = BlackOilIntensiveQuantitiesSimple<TypeTag>;
     //using type = BlackOilIntensiveQuantities<TypeTag>;
     //using type = BlackOilIntensiveQuantitiesDryGas<TypeTag>;

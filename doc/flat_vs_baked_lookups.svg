@@ -1,0 +1,67 @@
+<svg viewBox="0 0 880 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t2 d2">
+<title id="t2">Flat design versus baked design, lookup by lookup</title>
+<desc id="d2">The flat design derives three saturation arguments once but still performs six transform-lookup-rescale chains. The baked design performs three lookups into shared node arrays with no runtime transform.</desc>
+<style>
+  .h{font:700 14px ui-sans-serif,system-ui;fill:#1a1a1a}
+  .l{font:600 12px ui-sans-serif,system-ui;fill:#1a1a1a}
+  .s{font:11px ui-sans-serif,system-ui;fill:#666}
+  .m{font:10px ui-monospace,monospace;fill:#666}
+  .fl{fill:#fdf3e7;stroke:#c08a3e;stroke-width:1.1;rx:4}
+  .bk{fill:#e9f2ec;stroke:#4f8f6a;stroke-width:1.1;rx:4}
+  .bx{fill:#f4f4f5;stroke:#d4d4d8;stroke-width:1;rx:4}
+  .ln{stroke:#a8a8ae;stroke-width:1;fill:none}
+</style>
+
+<text class="h" x="16" y="22">FLAT (variant F) — deck tables kept, 6 chains, 59.8 ns/cell</text>
+
+<rect class="bx" x="16" y="34" width="120" height="52"/>
+<text class="l" x="26" y="54">derive once</text>
+<text class="m" x="26" y="70">sw, sg, S</text>
+<path class="ln" d="M136 60 h22"/>
+
+<g transform="translate(158,32)">
+  <rect class="fl" x="0" y="0" width="176" height="24"/><text class="m" x="8" y="16">T_krw(sw) → search → ×scale</text>
+  <rect class="fl" x="0" y="28" width="176" height="24"/><text class="m" x="8" y="44">T_pc (sw) → search → ×scale</text>
+  <rect class="fl" x="0" y="56" width="176" height="24"/><text class="m" x="8" y="72">T_krn(S)  → search → ×scale</text>
+  <rect class="fl" x="0" y="84" width="176" height="24"/><text class="m" x="8" y="100">T_krn(sg')→ search → ×scale</text>
+  <rect class="fl" x="0" y="112" width="176" height="24"/><text class="m" x="8" y="128">T_pc (sg')→ search → ×scale</text>
+  <rect class="fl" x="0" y="140" width="176" height="24"/><text class="m" x="8" y="156">T_krw(1-S)→ search → ×scale</text>
+</g>
+
+<text class="s" x="350" y="52">6 transforms in the hot loop</text>
+<text class="s" x="350" y="70">6 searches, 6 value rescalings</text>
+<text class="s" x="350" y="88">per-cell scaled endpoints loaded</text>
+<text class="s" x="350" y="112">exact by construction</text>
+<text class="s" x="350" y="130">no init step, hysteresis for free</text>
+
+<line x1="16" y1="220" x2="864" y2="220" stroke="#d4d4d8"/>
+
+<text class="h" x="16" y="252">BAKED — resampled node arrays, 3 lookups, 20.6 ns/cell</text>
+
+<rect class="bx" x="16" y="264" width="120" height="52"/>
+<text class="l" x="26" y="284">derive once</text>
+<text class="m" x="26" y="300">sw, sg, S</text>
+<path class="ln" d="M136 290 h22"/>
+
+<g transform="translate(158,262)">
+  <rect class="bk" x="0" y="0" width="176" height="30"/><text class="m" x="8" y="13">lookup x[] @ sw</text><text class="m" x="8" y="26">→ krw, pcow</text>
+  <rect class="bk" x="0" y="36" width="176" height="30"/><text class="m" x="8" y="49">lookup x[] @ sg</text><text class="m" x="8" y="62">→ krg, pcgo</text>
+  <rect class="bk" x="0" y="72" width="176" height="30"/><text class="m" x="8" y="85">lookup x[] @ S</text><text class="m" x="8" y="98">→ kro_ow, kro_go</text>
+</g>
+
+<path class="ln" d="M334 292 h22"/>
+<rect class="bk" x="356" y="272" width="120" height="40"/>
+<text class="m" x="366" y="288">× 6 per-cell</text>
+<text class="m" x="366" y="302">factors</text>
+
+<text class="s" x="500" y="282">0 transforms in the hot loop</text>
+<text class="s" x="500" y="300">scaling folded into node positions</text>
+<text class="s" x="500" y="318">33.7 KB pool for all 44 431 cells</text>
+<text class="s" x="500" y="342">bake step at init; validated 1e-10</text>
+
+<text class="h" x="16" y="392">Why the pairs cannot share a lookup in the flat design</text>
+<text class="s" x="16" y="414">krw / pcow   same input sw, but T_krw and T_pc use different endpoints → different positions</text>
+<text class="s" x="16" y="432">krg / pcgo   same input, same story</text>
+<text class="s" x="16" y="450">kro_ow / kro_go   different deck tables entirely (SWOF vs SGOF) — never shareable</text>
+<text class="s" x="16" y="474">Without ENDSCALE the first two pairs do collapse: flat would be 4 lookups, baked still 3.</text>
+</svg>
